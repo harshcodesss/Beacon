@@ -1,6 +1,6 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import GoogleProvider from "next-auth/providers/google";
+import GitHubProvider from "next-auth/providers/github";
 
 import { apiUrl } from "@/lib/api";
 
@@ -11,7 +11,7 @@ interface BackendAuthResponse {
 
 async function exchangeWithBackend(payload: object): Promise<BackendAuthResponse | null> {
   try {
-    const resp = await fetch(`${apiUrl()}/auth/google/callback`, {
+    const resp = await fetch(`${apiUrl()}/auth/oauth/callback`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -25,11 +25,13 @@ async function exchangeWithBackend(payload: object): Promise<BackendAuthResponse
 
 const providers: NextAuthOptions["providers"] = [];
 
-if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
   providers.push(
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    GitHubProvider({
+      clientId: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+      // user:email lets the backend resolve a private primary email.
+      authorization: { params: { scope: "read:user user:email" } },
     }),
   );
 }
@@ -61,9 +63,9 @@ export const authOptions: NextAuthOptions = {
   pages: { signIn: "/" },
   callbacks: {
     async jwt({ token, account, user }) {
-      // Google sign-in: swap the Google ID token for a Beacon API JWT.
-      if (account?.provider === "google" && account.id_token) {
-        const auth = await exchangeWithBackend({ id_token: account.id_token });
+      // GitHub sign-in: swap the GitHub access token for a Beacon API JWT.
+      if (account?.provider === "github" && account.access_token) {
+        const auth = await exchangeWithBackend({ access_token: account.access_token });
         if (auth) {
           token.backendToken = auth.access_token;
           token.userId = auth.user.id;

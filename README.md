@@ -40,7 +40,7 @@ migrations run automatically), the RQ triage worker, and the Next.js web app
 Then walk the demo path:
 
 1. Open <http://localhost:3000> and use **Dev sign-in** (enabled by
-   `AUTH_DEV_MODE=true`; any email works, no Google account needed).
+   `AUTH_DEV_MODE=true`; any email works, no GitHub account needed).
 2. You land on the dashboard with a seeded demo project — three finished
    incidents with accuracy stats, so the product is never empty.
 3. Click **New project**, name it, then **Trigger incident**.
@@ -50,9 +50,10 @@ Then walk the demo path:
 
 ![Dashboard](.github/assets/dashboard.png)
 
-To sign in with Google instead, create an OAuth client (web application,
-redirect URI `http://localhost:3000/api/auth/callback/google`), set
-`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` in `.env`, and set
+To sign in with GitHub instead, create a GitHub OAuth app (Settings →
+Developer settings → OAuth Apps) with callback URL
+`http://localhost:3000/api/auth/callback/github`, set
+`GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` in `.env`, and set
 `AUTH_DEV_MODE=false`.
 
 ## GitHub Action
@@ -64,10 +65,10 @@ workflow: **[INSTALL.md](INSTALL.md)**.
 ## Architecture
 
 ```
-Next.js 14 (App Router) ── NextAuth (Google / dev) ─┐
-        │  Bearer JWT                               │ id_token exchange
+Next.js 14 (App Router) ── NextAuth (GitHub / dev) ─┐
+        │  Bearer JWT                               │ access-token exchange
         ▼                                           ▼
-FastAPI ──────────────────────────────── POST /auth/google/callback
+FastAPI ──────────────────────────────── POST /auth/oauth/callback
   │   │
   │   └── POST /projects/{id}/incidents ──► Redis (RQ "triage" queue)
   │                                              │
@@ -82,9 +83,9 @@ Postgres ◄──────────────────────�
   `from beacon.graph.build import app as beacon_graph`. Until the agent-core
   package ships, `backend/app/beacon_client.py` falls back to a mock with the
   identical `invoke()` contract, so the swap is a one-line change.
-- **Auth** — NextAuth on the frontend; the backend verifies the Google
-  `id_token` and issues its own JWT. All queries are user-scoped (missing and
-  foreign resources are both 404).
+- **Auth** — NextAuth on the frontend; the backend verifies the GitHub
+  access token against the GitHub API and issues its own JWT. All queries are
+  user-scoped (missing and foreign resources are both 404).
 - **API keys** — `beacon_sk_` keys are stored SHA-256-hashed, shown once at
   creation, and rate-limited per key on the webhook.
 - **Jobs** — RQ worker; a failed triage marks the incident *failed* and

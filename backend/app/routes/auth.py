@@ -8,43 +8,43 @@ from app import security
 from app.config import settings
 from app.db import get_db
 from app.models import User
-from app.schemas import GoogleCallbackIn, TokenOut, UserOut
+from app.schemas import OAuthCallbackIn, TokenOut, UserOut
 from app.seed import seed_demo_project
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["auth"])
 
 
-@router.post("/auth/google/callback", response_model=TokenOut)
-def google_callback(body: GoogleCallbackIn, db: Session = Depends(get_db)) -> TokenOut:
-    """Exchange a Google ID token for a Beacon session JWT (issued by this API).
+@router.post("/auth/oauth/callback", response_model=TokenOut)
+def oauth_callback(body: OAuthCallbackIn, db: Session = Depends(get_db)) -> TokenOut:
+    """Exchange a GitHub OAuth access token for a Beacon session JWT (issued by this API).
 
     In AUTH_DEV_MODE, `dev_email` may be used instead for local demos.
     """
-    if body.id_token:
+    if body.access_token:
         try:
-            claims = security.verify_google_id_token(body.id_token)
+            gh_user = security.verify_github_access_token(body.access_token)
         except ValueError:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Google token"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid GitHub token"
             ) from None
-        google_sub = claims["sub"]
-        email = claims.get("email", "")
-        name = claims.get("name", "")
+        github_login = gh_user["login"]
+        email = gh_user["email"]
+        name = gh_user["name"]
     elif body.dev_email and settings.auth_dev_mode:
         email = body.dev_email.strip().lower()
         if "@" not in email:
             raise HTTPException(status_code=422, detail="Invalid email")
-        google_sub = f"dev:{email}"
+        github_login = f"dev:{email}"
         name = body.dev_name or email.split("@")[0]
     else:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing credentials"
         )
 
-    user = db.scalar(select(User).where(User.google_sub == google_sub))
+    user = db.scalar(select(User).where(User.github_login == github_login))
     if user is None:
-        user = User(google_sub=google_sub, email=email, name=name)
+        user = User(github_login=github_login, email=email, name=name)
         db.add(user)
         db.flush()
         seed_demo_project(db, user)

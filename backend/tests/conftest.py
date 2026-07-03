@@ -56,7 +56,7 @@ def signin(client):
     """Dev-mode sign-in helper; returns auth headers for a given email."""
 
     def _signin(email: str = "user@test.com") -> dict:
-        resp = client.post("/auth/google/callback", json={"dev_email": email})
+        resp = client.post("/auth/oauth/callback", json={"dev_email": email})
         assert resp.status_code == 200, resp.text
         return {"Authorization": f"Bearer {resp.json()['access_token']}"}
 

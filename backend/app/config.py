@@ -13,8 +13,6 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expires_minutes: int = 60 * 24 * 7
 
-    google_client_id: str = ""
-
     # Enables password-less dev sign-in for local demos. Never enable in production.
     auth_dev_mode: bool = False
 

@@ -11,15 +11,16 @@ class ORMModel(BaseModel):
 # ---- auth ----
 
 
-class GoogleCallbackIn(BaseModel):
-    id_token: str | None = None
-    # Dev-mode sign-in (AUTH_DEV_MODE=true only): bypasses Google for local demos.
+class OAuthCallbackIn(BaseModel):
+    access_token: str | None = None
+    # Dev-mode sign-in (AUTH_DEV_MODE=true only): bypasses GitHub for local demos.
     dev_email: str | None = None
     dev_name: str | None = None
 
 
 class UserOut(ORMModel):
     id: uuid.UUID
+    github_login: str
     email: str
     name: str
     created_at: datetime
