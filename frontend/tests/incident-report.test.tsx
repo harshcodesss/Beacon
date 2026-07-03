@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 import { HypothesesSection } from "@/components/HypothesesSection";
 import { ReportView } from "@/components/ReportView";
@@ -30,7 +30,7 @@ describe("incident report rendering", () => {
   it("renders hypotheses with prior confidence and confirm/refute evidence", () => {
     render(<HypothesesSection hypotheses={EXAMPLE_HYPOTHESES} />);
     // Collapsible defaults closed for hypotheses — open it.
-    screen.getByRole("button", { name: /hypotheses/i }).click();
+    fireEvent.click(screen.getByRole("button", { name: /hypotheses/i }));
     expect(screen.getByText(/dropped the DB_URL fallback/i)).toBeDefined();
     expect(screen.getByText("api/config.py")).toBeDefined();
   });
