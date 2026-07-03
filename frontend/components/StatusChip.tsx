@@ -1,14 +1,16 @@
 import type { IncidentStatus } from "@/lib/types";
 
+// Semantic tints stay on status chips for scanability (green done, red
+// failed); queued/running are neutral in the monochromatic theme.
 const STYLES: Record<IncidentStatus, { label: string; className: string; pulse?: boolean }> = {
-  queued: { label: "Queued", className: "bg-zinc-500/15 text-zinc-300 border-zinc-500/30" },
+  queued: { label: "Queued", className: "border-zinc-300 bg-zinc-100 text-zinc-600" },
   running: {
     label: "Running",
-    className: "bg-sky-500/15 text-sky-300 border-sky-500/30",
+    className: "border-zinc-400 bg-zinc-100 text-zinc-800",
     pulse: true,
   },
-  done: { label: "Done", className: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" },
-  failed: { label: "Failed", className: "bg-red-500/15 text-red-300 border-red-500/30" },
+  done: { label: "Done", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+  failed: { label: "Failed", className: "border-red-200 bg-red-50 text-red-700" },
 };
 
 export function StatusChip({ status }: { status: IncidentStatus }) {

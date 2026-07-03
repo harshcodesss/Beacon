@@ -6,15 +6,17 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Light monochromatic surfaces; orange is a sparse accent (logo,
+        // active sidebar item, CTA hover/focus, confidence bars).
         surface: {
-          DEFAULT: "#0b0d10",
-          raised: "#12151a",
-          overlay: "#1a1e25",
+          DEFAULT: "#f6f6f7",
+          raised: "#ffffff",
+          overlay: "#efeff1",
         },
-        edge: "#232830",
+        edge: "#e4e4e7",
         beacon: {
           DEFAULT: "#f5a623",
-          dim: "#b97e1c",
+          dim: "#b47408",
         },
       },
       fontFamily: {

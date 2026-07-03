@@ -75,12 +75,17 @@ def create_project(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Project:
+    project_settings = dict(body.settings)
+    # Account-level default delivery applies unless the project sets its own.
+    project_settings.setdefault(
+        "delivery", (user.preferences or {}).get("delivery", "in_app")
+    )
     project = Project(
         user_id=user.id,
         name=body.name,
         repo_full_name=body.repo_full_name,
         log_source_type=body.log_source_type,
-        settings=body.settings,
+        settings=project_settings,
     )
     db.add(project)
     db.commit()

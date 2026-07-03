@@ -7,12 +7,14 @@ from sqlalchemy.orm import Session, joinedload
 from app import jobs
 from app.db import get_db
 from app.deps import get_current_user, get_owned_project
-from app.models import Incident, IncidentTrigger, User
+from app.models import Incident, IncidentStatus, IncidentTrigger, Project, User
 from app.schemas import (
     IncidentCreate,
     IncidentDetail,
+    IncidentFeedPage,
     IncidentPage,
     IncidentSummary,
+    IncidentWithProject,
     ReportOut,
 )
 
@@ -65,6 +67,43 @@ def list_incidents(
         page=page,
         page_size=page_size,
     )
+
+
+@router.get("/incidents", response_model=IncidentFeedPage)
+def all_incidents(
+    project_id: uuid.UUID | None = Query(default=None),
+    status_filter: str | None = Query(default=None, alias="status"),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> IncidentFeedPage:
+    """Flat feed of the user's incidents across all projects, filterable."""
+    base = (
+        select(Incident).join(Project, Incident.project_id == Project.id)
+        .where(Project.user_id == user.id)
+    )
+    if project_id is not None:
+        base = base.where(Incident.project_id == project_id)
+    if status_filter is not None:
+        try:
+            base = base.where(Incident.status == IncidentStatus(status_filter))
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Invalid status") from None
+
+    total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
+    incidents = db.scalars(
+        base.options(joinedload(Incident.project))
+        .order_by(desc(Incident.created_at))
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    ).all()
+    items = []
+    for incident in incidents:
+        item = IncidentWithProject.model_validate(incident)
+        item.project_name = incident.project.name
+        items.append(item)
+    return IncidentFeedPage(items=items, total=total, page=page, page_size=page_size)
 
 
 @router.get("/incidents/{incident_id}", response_model=IncidentDetail)

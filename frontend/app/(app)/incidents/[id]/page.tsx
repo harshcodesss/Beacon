@@ -18,7 +18,7 @@ const POLL_MS = 2500;
 function StatBlock({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="font-mono text-sm font-semibold text-zinc-200">{value}</div>
+      <div className="font-mono text-sm font-semibold text-zinc-900">{value}</div>
       <div className="text-[11px] uppercase tracking-wide text-zinc-500">{label}</div>
     </div>
   );
@@ -34,7 +34,7 @@ function RunningPanel({ status }: { status: "queued" | "running" }) {
         </span>
       </div>
       <div>
-        <h3 className="text-sm font-semibold text-zinc-200">
+        <h3 className="text-sm font-semibold text-zinc-800">
           {status === "queued" ? "Waiting for a worker…" : "Investigation in progress"}
         </h3>
         <p className="mt-1 max-w-sm text-sm text-zinc-500">
@@ -75,10 +75,10 @@ export default function IncidentPage() {
 
   if (error && !incident) {
     return (
-      <div className="mx-auto max-w-3xl rounded-lg border border-red-500/30 bg-red-500/5 p-6 text-sm text-red-200">
+      <div className="mx-auto max-w-3xl rounded-lg border border-red-200 bg-red-50 p-6 text-sm text-red-700">
         {error} —{" "}
-        <Link href="/dashboard" className="underline">
-          back to dashboard
+        <Link href="/incidents" className="underline">
+          back to incidents
         </Link>
       </div>
     );
@@ -104,7 +104,7 @@ export default function IncidentPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-lg font-semibold text-zinc-50">Incident</h1>
+            <h1 className="text-lg font-semibold text-zinc-900">Incident</h1>
             <StatusChip status={incident.status} />
           </div>
           <p className="mt-1 font-mono text-xs text-zinc-500">
@@ -113,8 +113,8 @@ export default function IncidentPage() {
             {incident.trigger}
           </p>
         </div>
-        <Link href="/dashboard" className="text-sm text-zinc-400 hover:text-zinc-100">
-          ← Dashboard
+        <Link href="/incidents" className="text-sm text-zinc-500 hover:text-zinc-900">
+          ← Incidents
         </Link>
       </div>
 
@@ -129,14 +129,14 @@ export default function IncidentPage() {
       {isActive ? <RunningPanel status={incident.status as "queued" | "running"} /> : null}
 
       {incident.status === "failed" ? (
-        <div className="space-y-3 rounded-lg border border-red-500/30 bg-red-500/5 p-5">
-          <h3 className="text-sm font-semibold text-red-200">Triage failed</h3>
-          <p className="text-sm text-red-200/80">
+        <div className="space-y-3 rounded-lg border border-red-200 bg-red-50 p-5">
+          <h3 className="text-sm font-semibold text-red-800">Triage failed</h3>
+          <p className="text-sm text-red-700/90">
             The agent run raised an exception. The error is stored below — re-trigger the incident
-            from the dashboard after fixing the cause.
+            from its project page after fixing the cause.
           </p>
           {report?.accuracy_meta?.error ? (
-            <pre className="max-h-64 overflow-auto rounded-md border border-red-500/20 bg-surface p-3 font-mono text-xs text-red-200/90">
+            <pre className="max-h-64 overflow-auto rounded-md border border-red-200 bg-white p-3 font-mono text-xs text-red-800">
               {String(report.accuracy_meta.error)}
             </pre>
           ) : null}

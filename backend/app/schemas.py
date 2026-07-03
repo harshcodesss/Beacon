@@ -23,7 +23,14 @@ class UserOut(ORMModel):
     github_login: str
     email: str
     name: str
+    preferences: dict = Field(default_factory=dict)
     created_at: datetime
+
+
+class MeUpdate(BaseModel):
+    name: str | None = Field(default=None, max_length=255)
+    # Shallow-merged into the stored preferences, e.g. {"delivery": "email"}.
+    preferences: dict | None = None
 
 
 class TokenOut(BaseModel):
@@ -106,6 +113,27 @@ class IncidentPage(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class IncidentWithProject(IncidentSummary):
+    project_name: str | None = None
+
+
+class IncidentFeedPage(BaseModel):
+    items: list[IncidentWithProject]
+    total: int
+    page: int
+    page_size: int
+
+
+class StatsOverview(BaseModel):
+    total_incidents: int
+    done: int
+    failed: int
+    active: int  # queued + running
+    accuracy: AccuracyStats | None = None
+    avg_tokens: float = 0
+    avg_tool_calls: float = 0
 
 
 # ---- api keys ----

@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 
-import { NavBar } from "@/components/NavBar";
-
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -15,10 +13,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <Providers>
-          <NavBar />
-          <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
-        </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

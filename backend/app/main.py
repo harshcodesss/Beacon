@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routes import auth, health, incidents, projects, webhook
+from app.routes import auth, health, incidents, me, projects, stats, webhook
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 
@@ -33,4 +33,6 @@ app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(projects.router)
 app.include_router(incidents.router)
+app.include_router(me.router)
+app.include_router(stats.router)
 app.include_router(webhook.router)

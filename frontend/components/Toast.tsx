@@ -17,9 +17,9 @@ export function useToast() {
 }
 
 const VARIANT_STYLES: Record<ToastVariant, string> = {
-  success: "border-emerald-500/40 text-emerald-200",
-  error: "border-red-500/40 text-red-200",
-  info: "border-sky-500/40 text-sky-200",
+  success: "border-emerald-300 text-emerald-800",
+  error: "border-red-300 text-red-800",
+  info: "border-zinc-300 text-zinc-700",
 };
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
@@ -39,7 +39,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           <div
             key={toast.id}
             role="status"
-            className={`pointer-events-auto rounded-md border bg-surface-overlay px-4 py-3 text-sm shadow-lg ${VARIANT_STYLES[toast.variant]}`}
+            className={`pointer-events-auto rounded-md border bg-white px-4 py-3 text-sm shadow-lg ${VARIANT_STYLES[toast.variant]}`}
           >
             {toast.message}
           </div>

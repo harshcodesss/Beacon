@@ -50,6 +50,36 @@ export interface IncidentPage {
   page_size: number;
 }
 
+export interface IncidentWithProject extends IncidentSummary {
+  project_name: string | null;
+}
+
+export interface IncidentFeedPage {
+  items: IncidentWithProject[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface StatsOverview {
+  total_incidents: number;
+  done: number;
+  failed: number;
+  active: number;
+  accuracy: AccuracyStats | null;
+  avg_tokens: number;
+  avg_tool_calls: number;
+}
+
+export interface UserProfile {
+  id: string;
+  github_login: string;
+  email: string;
+  name: string;
+  preferences: { delivery?: "in_app" | "email"; [key: string]: unknown };
+  created_at: string;
+}
+
 export interface BudgetConfig {
   max_tool_calls?: number;
   max_tokens?: number;

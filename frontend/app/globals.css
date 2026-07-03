@@ -3,17 +3,17 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
-  @apply bg-surface text-zinc-200 antialiased;
+  @apply bg-surface text-zinc-700 antialiased;
 }
 
 ::selection {
-  @apply bg-beacon/30 text-zinc-50;
+  @apply bg-beacon/30 text-zinc-900;
 }
 
 input[type="range"] {
-  @apply h-1.5 w-full cursor-pointer appearance-none rounded-full bg-zinc-800 accent-[#f5a623];
+  @apply h-1.5 w-full cursor-pointer appearance-none rounded-full bg-zinc-200 accent-zinc-900;
 }

@@ -3,10 +3,11 @@ import { ConfidenceBar } from "@/components/ConfidenceBar";
 import { EvidenceChip } from "@/components/EvidenceChip";
 import type { Verdict, VerdictItem } from "@/lib/types";
 
+// Accept/reject badges keep the same semantic tints as status chips.
 const VERDICT_BADGES: Record<Verdict, string> = {
-  accept: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
-  reject: "bg-red-500/15 text-red-300 border-red-500/30",
-  inconclusive: "bg-zinc-500/15 text-zinc-300 border-zinc-500/30",
+  accept: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  reject: "border-red-200 bg-red-50 text-red-700",
+  inconclusive: "border-zinc-300 bg-zinc-100 text-zinc-600",
 };
 
 export function VerdictBadge({ verdict }: { verdict: Verdict }) {
@@ -37,7 +38,7 @@ export function VerdictsSection({ verdicts }: { verdicts: VerdictItem[] }) {
               </div>
               <ConfidenceBar value={verdict.confidence} />
             </div>
-            <p className="mt-3 text-sm leading-relaxed text-zinc-300">{verdict.reasoning}</p>
+            <p className="mt-3 text-sm leading-relaxed text-zinc-700">{verdict.reasoning}</p>
             {verdict.evidence?.length ? (
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {verdict.evidence.map((citation) => (
