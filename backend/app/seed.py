@@ -1,5 +1,6 @@
 """Demo-project seeding: every brand-new user gets one project with three
-realistic finished incidents so no screen ever renders empty."""
+realistic finished incidents (plus one failed run) so no screen ever
+renders empty."""
 
 from datetime import timedelta
 
@@ -51,5 +52,32 @@ def seed_demo_project(db: Session, user: User) -> Project:
                 created_at=started + timedelta(seconds=95 + 40 * i),
             )
         )
+    # One failed run so the incidents filter and failed-state UI have data.
+    failed_at = now - timedelta(days=8, hours=2)
+    failed = Incident(
+        project_id=project.id,
+        status=IncidentStatus.failed,
+        trigger=IncidentTrigger.api,
+        created_at=failed_at,
+        finished_at=failed_at + timedelta(seconds=12),
+    )
+    db.add(failed)
+    db.flush()
+    db.add(
+        Report(
+            incident_id=failed.id,
+            report_md="",
+            accuracy_meta={
+                "error": (
+                    "Traceback (most recent call last):\n"
+                    '  File "beacon/collector.py", line 88, in collect_window\n'
+                    "    with open(source_path) as fh:\n"
+                    "FileNotFoundError: [Errno 2] No such file or directory: "
+                    "'./logs/app.log'\n"
+                )
+            },
+            created_at=failed_at + timedelta(seconds=12),
+        )
+    )
     db.flush()
     return project

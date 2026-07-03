@@ -41,14 +41,14 @@ Then walk the demo path:
 
 1. Open <http://localhost:3000> and use **Dev sign-in** (enabled by
    `AUTH_DEV_MODE=true`; any email works, no GitHub account needed).
-2. You land on the dashboard with a seeded demo project — three finished
-   incidents with accuracy stats, so the product is never empty.
-3. Click **New project**, name it, then **Trigger incident**.
+2. You land on **Home** with a seeded demo project — finished incidents,
+   accuracy stats, and one failed run, so no screen is ever empty.
+3. Under **Projects**, create a project, open it, then **Trigger incident**.
 4. Watch the incident page poll live from *Queued* → *Running* → *Done*; the
    report renders with verdicts (accept/reject badges, confidence bars,
    evidence chips) and the hypothesis set the agent worked from.
 
-![Dashboard](.github/assets/dashboard.png)
+![Home](.github/assets/home.png)
 
 To sign in with GitHub instead, create a GitHub OAuth app (Settings →
 Developer settings → OAuth Apps) with callback URL
@@ -118,7 +118,8 @@ CI runs the same lint/test/build matrix on every pull request
 
 ```
 backend/    FastAPI app, SQLAlchemy models, Alembic migrations, RQ jobs, tests
-frontend/   Next.js app: landing, dashboard, incident detail, settings
+frontend/   Next.js app: landing + sidebar shell (home, projects, incidents,
+            settings, install)
 action/     GitHub Action (Docker) that triages failed deploys
 .github/    CI workflow and README assets
 ```
