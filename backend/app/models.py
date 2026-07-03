@@ -35,6 +35,8 @@ class User(Base):
     github_login: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(255), default="")
+    # Account-level defaults, e.g. {"delivery": "in_app"|"email"} applied to new projects.
+    preferences: Mapped[dict] = mapped_column(JSONVariant, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     projects: Mapped[list["Project"]] = relationship(back_populates="user")
@@ -52,7 +54,7 @@ class Project(Base):
     log_source_type: Mapped[str] = mapped_column(String(50), default="file")
     # Holds log-source settings plus project settings that ride along in v1:
     # {"path": ..., "budget": {"max_tool_calls", "max_tokens"}, "delivery": "in_app"|"email"}
-    log_source_config: Mapped[dict] = mapped_column(JSONVariant, default=dict)
+    settings: Mapped[dict] = mapped_column(JSONVariant, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     user: Mapped[User] = relationship(back_populates="projects")

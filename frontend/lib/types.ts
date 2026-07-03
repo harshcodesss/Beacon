@@ -68,7 +68,7 @@ export interface Project {
   name: string;
   repo_full_name: string;
   log_source_type: string;
-  log_source_config: LogSourceConfig;
+  settings: LogSourceConfig;
   created_at: string;
 }
 

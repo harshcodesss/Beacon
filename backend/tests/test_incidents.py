@@ -46,7 +46,7 @@ def test_incident_lifecycle_respects_project_budget(
     headers = signin()
     project = make_project(
         headers,
-        log_source_config={"path": "./app.log", "budget": {"max_tool_calls": 7}},
+        settings={"path": "./app.log", "budget": {"max_tool_calls": 7}},
     )
     incident = _trigger(client, headers, project["id"])
     stub = StubGraph()

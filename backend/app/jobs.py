@@ -31,9 +31,9 @@ def enqueue_triage(incident_id: str) -> None:
     get_queue().enqueue(run_triage, incident_id, job_timeout=JOB_TIMEOUT_SECONDS)
 
 
-def project_budget(log_source_config: dict | None) -> dict:
+def project_budget(project_settings: dict | None) -> dict:
     budget = default_budget()
-    configured = (log_source_config or {}).get("budget") or {}
+    configured = (project_settings or {}).get("budget") or {}
     for key in ("max_tool_calls", "max_tokens"):
         value = configured.get(key)
         if isinstance(value, int) and value > 0:
@@ -58,7 +58,7 @@ def run_triage(incident_id: str) -> None:
         db.commit()
 
         project = incident.project
-        budget = project_budget(project.log_source_config)
+        budget = project_budget(project.settings)
 
         try:
             result = beacon_graph.invoke({"incident_id": incident_id, "budget": budget})
@@ -102,7 +102,7 @@ def run_triage(incident_id: str) -> None:
 
 def _deliver(db, incident: Incident) -> None:
     project = incident.project
-    config = project.log_source_config or {}
+    config = project.settings or {}
     if config.get("delivery") != "email":
         return
     owner = project.user

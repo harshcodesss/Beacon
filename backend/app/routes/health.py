@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.beacon_client import AGENT_CORE
 from app.db import get_db
 from app.ratelimit import get_redis
 
@@ -22,4 +23,6 @@ def healthz(db: Session = Depends(get_db)) -> dict:
     except Exception:
         checks["redis"] = "error"
     checks["status"] = "ok" if all(v == "ok" for v in checks.values()) else "degraded"
+    # Informational, not part of the ok/degraded calculation.
+    checks["agent_core"] = AGENT_CORE
     return checks

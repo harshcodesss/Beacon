@@ -40,7 +40,7 @@ function NewProjectForm({ onCreated }: { onCreated: () => void }) {
           name,
           repo_full_name: repo,
           log_source_type: "file",
-          log_source_config: {
+          settings: {
             path: logPath,
             budget: { max_tool_calls: 15, max_tokens: 60000 },
             delivery: "in_app",
@@ -175,7 +175,7 @@ function ProjectCard({
         <div>
           <h3 className="flex items-center gap-2 text-sm font-semibold text-zinc-100">
             {project.name}
-            {project.log_source_config?.demo ? (
+            {project.settings?.demo ? (
               <span className="rounded-full bg-beacon/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-beacon">
                 demo
               </span>

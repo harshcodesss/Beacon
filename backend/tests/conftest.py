@@ -71,7 +71,7 @@ def make_project(client, signin):
             "name": "test-project",
             "repo_full_name": "acme/api",
             "log_source_type": "file",
-            "log_source_config": {"path": "./app.log"},
+            "settings": {"path": "./app.log"},
         }
         payload.update(overrides)
         resp = client.post("/projects", json=payload, headers=headers)

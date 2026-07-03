@@ -39,14 +39,14 @@ class ProjectCreate(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     repo_full_name: str = Field(default="", max_length=255)
     log_source_type: str = "file"
-    log_source_config: dict = Field(default_factory=dict)
+    settings: dict = Field(default_factory=dict)
 
 
 class ProjectUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
     repo_full_name: str | None = Field(default=None, max_length=255)
     log_source_type: str | None = None
-    log_source_config: dict | None = None
+    settings: dict | None = None
 
 
 class ProjectOut(ORMModel):
@@ -54,7 +54,7 @@ class ProjectOut(ORMModel):
     name: str
     repo_full_name: str
     log_source_type: str
-    log_source_config: dict
+    settings: dict
     created_at: datetime
 
 

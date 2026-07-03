@@ -124,10 +124,10 @@ export default function SettingsPage() {
     if (!project) return;
     setName(project.name);
     setRepo(project.repo_full_name);
-    setLogPath(project.log_source_config?.path ?? "./logs/app.log");
-    setMaxToolCalls(project.log_source_config?.budget?.max_tool_calls ?? 15);
-    setMaxTokens(project.log_source_config?.budget?.max_tokens ?? 60000);
-    setDelivery(project.log_source_config?.delivery ?? "in_app");
+    setLogPath(project.settings?.path ?? "./logs/app.log");
+    setMaxToolCalls(project.settings?.budget?.max_tool_calls ?? 15);
+    setMaxTokens(project.settings?.budget?.max_tokens ?? 60000);
+    setDelivery(project.settings?.delivery ?? "in_app");
   }, [project]);
 
   useEffect(() => {
@@ -145,8 +145,8 @@ export default function SettingsPage() {
           name,
           repo_full_name: repo,
           log_source_type: "file",
-          log_source_config: {
-            ...project.log_source_config,
+          settings: {
+            ...project.settings,
             path: logPath,
             budget: { max_tool_calls: maxToolCalls, max_tokens: maxTokens },
             delivery,

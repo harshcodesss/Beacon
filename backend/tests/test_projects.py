@@ -38,7 +38,7 @@ def test_patch_project_updates_settings(client, signin, make_project):
         f"/projects/{project['id']}",
         json={
             "name": "renamed",
-            "log_source_config": {
+            "settings": {
                 "path": "./logs/app.log",
                 "budget": {"max_tool_calls": 10, "max_tokens": 40000},
                 "delivery": "email",
@@ -49,7 +49,7 @@ def test_patch_project_updates_settings(client, signin, make_project):
     assert resp.status_code == 200
     body = resp.json()
     assert body["name"] == "renamed"
-    assert body["log_source_config"]["budget"]["max_tool_calls"] == 10
+    assert body["settings"]["budget"]["max_tool_calls"] == 10
 
 
 def test_api_key_shown_once_and_stored_hashed(client, signin, make_project):

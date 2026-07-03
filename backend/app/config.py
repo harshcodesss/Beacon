@@ -6,6 +6,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
+    # development | production — production refuses to boot with AUTH_DEV_MODE=true.
+    env: str = "development"
+
     database_url: str = "postgresql+psycopg://beacon:beacon@localhost:5432/beacon"
     redis_url: str = "redis://localhost:6379/0"
 

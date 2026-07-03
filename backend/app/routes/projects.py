@@ -80,7 +80,7 @@ def create_project(
         name=body.name,
         repo_full_name=body.repo_full_name,
         log_source_type=body.log_source_type,
-        log_source_config=body.log_source_config,
+        settings=body.settings,
     )
     db.add(project)
     db.commit()

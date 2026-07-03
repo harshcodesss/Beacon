@@ -14,7 +14,7 @@ def test_dev_signin_issues_token_and_seeds_demo_project(client):
     projects = client.get("/projects", headers=headers).json()
     assert len(projects) == 1
     demo = projects[0]
-    assert demo["log_source_config"].get("demo") is True
+    assert demo["settings"].get("demo") is True
     assert demo["incident_count"] == 3
     assert all(i["status"] == "done" for i in demo["recent_incidents"])
     assert demo["accuracy"]["evaluated"] == 3

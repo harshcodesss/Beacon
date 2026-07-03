@@ -16,7 +16,7 @@ def seed_demo_project(db: Session, user: User) -> Project:
         name="meetpilot-api (demo)",
         repo_full_name="harshcodesss/meetpilot",
         log_source_type="file",
-        log_source_config={
+        settings={
             "path": "./logs/app.log",
             "budget": default_budget(),
             "delivery": "in_app",
