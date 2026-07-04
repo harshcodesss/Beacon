@@ -17,3 +17,125 @@ body {
 input[type="range"] {
   @apply h-1.5 w-full cursor-pointer appearance-none rounded-full bg-zinc-200 accent-zinc-900;
 }
+
+/* --- Landing hero: lighthouse beam swept over the fog video ------------- */
+
+.hero-beam {
+  position: absolute;
+  left: -14%;
+  top: 8%;
+  width: 125%;
+  height: 60%;
+  transform-origin: 0% 50%;
+  background: radial-gradient(
+    ellipse 58% 34% at 0% 50%,
+    rgba(255, 212, 130, 0.5),
+    rgba(245, 166, 35, 0.16) 52%,
+    rgba(245, 166, 35, 0.03) 72%,
+    transparent 82%
+  );
+  filter: blur(28px);
+  mix-blend-mode: screen;
+  animation: beam-sweep 11s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+.hero-beam-source {
+  position: absolute;
+  left: -3%;
+  top: 34%;
+  width: 130px;
+  height: 130px;
+  transform: translateY(-50%);
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle,
+    rgba(255, 218, 150, 0.95),
+    rgba(245, 166, 35, 0.35) 45%,
+    transparent 70%
+  );
+  filter: blur(8px);
+  mix-blend-mode: screen;
+  animation: beam-pulse 11s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes beam-sweep {
+  0% {
+    transform: rotate(-9deg);
+    opacity: 0;
+  }
+  14% {
+    opacity: 0.95;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  86% {
+    opacity: 0.95;
+  }
+  100% {
+    transform: rotate(8deg);
+    opacity: 0;
+  }
+}
+
+@keyframes beam-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+/* Beat 1: log lines drifting behind the fill headline. */
+@keyframes noise-drift {
+  from {
+    transform: translateX(-28px);
+  }
+  to {
+    transform: translateX(28px);
+  }
+}
+
+/* Hero scroll affordance: a slow falling tick. */
+@keyframes scroll-tick {
+  0% {
+    transform: scaleY(0);
+    transform-origin: top;
+  }
+  45% {
+    transform: scaleY(1);
+    transform-origin: top;
+  }
+  55% {
+    transform: scaleY(1);
+    transform-origin: bottom;
+  }
+  100% {
+    transform: scaleY(0);
+    transform-origin: bottom;
+  }
+}
+
+.scroll-tick {
+  animation: scroll-tick 2.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-beam {
+    animation: none;
+    transform: rotate(-1deg);
+    opacity: 0.55;
+  }
+  .hero-beam-source {
+    animation: none;
+    opacity: 0.6;
+  }
+  .scroll-tick {
+    animation: none;
+    transform: scaleY(1);
+  }
+}

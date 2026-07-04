@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "framer-motion": "^12.42.2",
     "next": "^14.2.15",
     "next-auth": "^4.24.7",
     "react": "^18.3.1",
