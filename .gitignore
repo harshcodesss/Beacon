@@ -33,6 +33,7 @@ docs/
 # Local data
 *.log
 postgres-data/
+.demo_target/
 
 # raw landing assets (processed copies live in frontend/public/hero/)
 frontend/hero-section-content/

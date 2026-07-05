@@ -1,0 +1,18 @@
+# Beacon user-facing config. Defaults target the seeded demo app
+# (run `python demo_app/seed_target.py` first).
+service: demo-target
+
+logs:
+  adapter: file            # file | loki | cloudwatch (pluggable)
+  path: ./.demo_target/logs/app.log
+
+metrics:
+  adapter: stub            # stub | prometheus
+
+repo:
+  path: ./.demo_target
+  diff_window: 5           # commits to inspect
+
+budget:
+  max_tool_calls: 15
+  max_tokens: 60000
