@@ -14,12 +14,20 @@ const config: Config = {
           overlay: "#efeff1",
         },
         edge: "#e4e4e7",
+        ink: "#262626",
         beacon: {
-          DEFAULT: "#f5a623",
-          dim: "#b47408",
+          DEFAULT: "#ff7f11",
+          dim: "#c25f00",
         },
       },
       fontFamily: {
+        sans: [
+          "var(--font-sans)",
+          "ui-sans-serif",
+          "system-ui",
+          "-apple-system",
+          "sans-serif",
+        ],
         mono: [
           "ui-monospace",
           "SFMono-Regular",
