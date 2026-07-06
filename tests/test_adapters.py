@@ -3,8 +3,8 @@
 import subprocess
 from datetime import datetime
 
-from beacon.adapters.git_diff import recent_commits
-from beacon.adapters.logs_file import read_recent_logs
+from beacon.adapters.git_diff import read_commit_patch, recent_commits
+from beacon.adapters.logs_file import grep_logs, read_recent_logs
 from beacon.config import DEFAULTS, load_config
 
 NOW = datetime(2026, 7, 6, 12, 0, 0)
@@ -83,3 +83,22 @@ def test_recent_commits_and_truncation(tmp_path):
     assert [c["message"] for c in commits] == ["shrink a.py", "big initial commit"]
     assert all(len(c["patch"]) <= 300 + len("\n... [patch truncated]") for c in commits)
     assert commits[1]["patch"].endswith("[patch truncated]")
+
+    # read a single commit's patch by hash
+    newest = commits[0]["hash"]
+    patch = read_commit_patch(newest, repo_path=str(repo))
+    assert "shrink a.py" in patch and "a.py" in patch
+    assert "not found" in read_commit_patch("deadbeef", repo_path=str(repo))
+
+
+def test_grep_logs_real_line_numbers(tmp_path):
+    path = _write_log(tmp_path, [
+        "2026-07-06 11:50:00 INFO demo request GET / -> 200",
+        "2026-07-06 11:55:00 ERROR demo payment provider timeout for user 2",
+        "2026-07-06 11:56:00 INFO demo request GET / -> 200",
+    ])
+    hits = grep_logs("payment provider timeout", minutes=30, path=path, now=NOW)
+    assert len(hits) == 1
+    assert hits[0].startswith("app.log:2:")   # real 1-based file line number
+    assert "user 2" in hits[0]
+    assert grep_logs("nonexistent-pattern", path=path, now=NOW) == []

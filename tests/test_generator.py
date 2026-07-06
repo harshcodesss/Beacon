@@ -2,7 +2,7 @@
 so we verify prompt assembly and post-processing (id fill, ranking, cap)."""
 
 from beacon.agents import generator
-from beacon.agents.generator import Hypothesis, HypothesisList, _build_prompt
+from beacon.agents.generator import Hypothesis, HypothesisList, build_prompt
 
 
 def _h(id, conf):
@@ -21,8 +21,8 @@ class _FakeLLM:
         return self.result
 
 
-def test_build_prompt_embeds_pack_and_rules():
-    prompt = _build_prompt({"service": "demo-target", "error_clusters": []})
+def testbuild_prompt_embeds_pack_and_rules():
+    prompt = build_prompt({"service": "demo-target", "error_clusters": []})
     assert "demo-target" in prompt          # pack serialized in
     assert "evidence_to_confirm" in prompt   # the contract rule is stated
     assert "Something is wrong with the database" in prompt  # the BAD anti-example

@@ -17,6 +17,25 @@ def _git(repo_path: str, *args: str) -> str:
     return result.stdout
 
 
+def read_commit_patch(
+    commit: str,
+    max_patch_chars: int = 4000,
+    repo_path: str | None = None,
+) -> str:
+    """Return one commit's patch (with header + stat), truncated. Backs the
+    Investigator's read_diff tool. Returns a plain not-found string rather than
+    raising, so a hallucinated hash just yields no evidence instead of a crash."""
+    repo_path = repo_path or load_config()["repo"]["path"]
+    try:
+        patch = _git(repo_path, "show", "--stat", "--patch",
+                     "--format=commit %H%nAuthor: %an%nDate: %aI%n%n    %s%n", commit)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return f"commit {commit!r} not found in repo"
+    if len(patch) > max_patch_chars:
+        patch = patch[:max_patch_chars] + "\n... [patch truncated]"
+    return patch
+
+
 def recent_commits(
     n: int | None = None,
     max_patch_chars: int = 4000,
