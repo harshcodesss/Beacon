@@ -9,6 +9,7 @@ hypotheses may get less investigation if earlier ones burned the budget.
 """
 
 import json
+import logging
 import os
 from typing import Literal
 
@@ -19,20 +20,23 @@ from pydantic import BaseModel, Field
 
 from beacon.agents.tools import TOOLS, TOOLS_BY_NAME
 from beacon.graph.state import BeaconState
-from beacon.llm import MAX_RETRIES, RATE_LIMITER
+from beacon.llm import MAX_RETRIES, get_rate_limiter
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_MAX_TOOL_CALLS = 15
 
 API_KEY = os.environ.get("GEMINI_API_KEY")
-MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+# per-agent override first (cost tiering), then the pipeline-wide default
+MODEL = os.environ.get("INVESTIGATOR_MODEL") or os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 
 llm = ChatGoogleGenerativeAI(
     model=MODEL,
     temperature=0.1,
     google_api_key=API_KEY,
-    rate_limiter=RATE_LIMITER,
+    rate_limiter=get_rate_limiter(MODEL),
     max_retries=MAX_RETRIES,
 ).bind_tools(TOOLS)
 
@@ -130,9 +134,17 @@ def investigate(state: BeaconState) -> dict:
 
         hid = hyp.get("id", "")
 
-        verdict: Verdict = _verdict_llm.invoke(
+        verdict: Verdict | None = _verdict_llm.invoke(
             messages + [HumanMessage(content=_VERDICT_INSTRUCTION.format(hid=hid))]
         )
+        if verdict is None:
+            # a failed verdict parse must not sink the whole investigation:
+            # fall back to an honest inconclusive and keep going
+            logger.warning("verdict parse failed for hypothesis %s; marking inconclusive", hid)
+            verdict = Verdict(
+                hypothesis_id=hid, verdict="inconclusive", confidence=0.0,
+                evidence=[], reasoning="verdict generation failed to parse; not scored",
+            )
         
         result = verdict.model_dump()
         result["hypothesis_id"] = hid or result.get("hypothesis_id", "")

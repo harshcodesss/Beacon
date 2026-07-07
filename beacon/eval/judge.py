@@ -65,11 +65,11 @@ def _llm_match(hypothesis: dict, truth: dict) -> bool:
         key = os.environ.get("GEMINI_API_KEY")
         if not key:
             return False
-        from beacon.llm import MAX_RETRIES, RATE_LIMITER
+        from beacon.llm import MAX_RETRIES, get_rate_limiter
         model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
         llm = ChatGoogleGenerativeAI(
             model=model, temperature=0, google_api_key=key,
-            rate_limiter=RATE_LIMITER, max_retries=MAX_RETRIES,
+            rate_limiter=get_rate_limiter(model), max_retries=MAX_RETRIES,
         )
         prompt = (
             "Does this hypothesis identify the same root cause as the ground truth?\n"

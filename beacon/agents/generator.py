@@ -9,6 +9,7 @@ commit/component + tool-checkable evidence".
 """
 
 import json
+import logging
 import os
 
 from dotenv import load_dotenv
@@ -16,20 +17,23 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import BaseModel, Field
 
 from beacon.graph.state import BeaconState
-from beacon.llm import MAX_RETRIES, RATE_LIMITER
+from beacon.llm import MAX_RETRIES, get_rate_limiter
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 MAX_HYPOTHESES = 5
 
 API_KEY = os.environ.get("GEMINI_API_KEY")
-MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+# per-agent override first (cost tiering), then the pipeline-wide default
+MODEL = os.environ.get("GENERATOR_MODEL") or os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 
 llm = ChatGoogleGenerativeAI(
     model=MODEL,
     temperature=0.4,
     google_api_key=API_KEY,
-    rate_limiter=RATE_LIMITER,
+    rate_limiter=get_rate_limiter(MODEL),
     max_retries=MAX_RETRIES,
 )
 
@@ -106,7 +110,20 @@ def build_prompt(context_pack: dict) -> str:
 def generate_hypotheses(state: BeaconState) -> dict:
     """Generate root-cause hypotheses for the given state."""
     pack = state.get("context_pack") or {}
-    result: HypothesisList = _structured_llm.invoke(build_prompt(pack))
+    prompt = build_prompt(pack)
+
+    # with_structured_output returns None when the model's output fails to
+    # parse; one retry with the identical prompt (structured mode usually
+    # self-corrects), and the first failure is always logged so prompt-misfire
+    # frequency stays visible.
+    result: HypothesisList | None = _structured_llm.invoke(prompt)
+    if result is None:
+        logger.warning("hypothesis generation returned unparseable output; retrying once")
+        result = _structured_llm.invoke(prompt)
+    if result is None:
+        raise RuntimeError(
+            "hypothesis generation failed twice: no parseable structured output"
+        )
 
     hyps = result.hypotheses
     for i, h in enumerate(hyps, start=1):

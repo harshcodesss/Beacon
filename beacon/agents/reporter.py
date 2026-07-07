@@ -9,6 +9,7 @@ anti-hallucination backstop and does not itself call the model.
 """
 
 import json
+import logging
 import os
 import re
 
@@ -16,22 +17,28 @@ from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from beacon.graph.state import BeaconState
-from beacon.llm import MAX_RETRIES, RATE_LIMITER
+from beacon.llm import MAX_RETRIES, get_rate_limiter
 
 load_dotenv()
 
-API_KEY = os.environ.get("GEMINI_API_KEY")
-MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+logger = logging.getLogger(__name__)
 
-# some fluency for prose, but grounded
+API_KEY = os.environ.get("GEMINI_API_KEY")
+# per-agent override first (cost tiering), then the pipeline-wide default
+MODEL = os.environ.get("REPORTER_MODEL") or os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+
 llm = ChatGoogleGenerativeAI(
-    model=MODEL, temperature=0.3, google_api_key=API_KEY,
-    rate_limiter=RATE_LIMITER, max_retries=MAX_RETRIES,
+    model=MODEL,
+    temperature=0.3,
+    google_api_key=API_KEY,
+    rate_limiter=get_rate_limiter(MODEL), max_retries=MAX_RETRIES,
 )
 
 # citation shapes the gate recognises
 _LOG_CITE = re.compile(r"[\w.-]+\.log:\d+")   # e.g. app.log:1042
-_COMMIT = re.compile(r"\b[0-9a-f]{7,40}\b")    # e.g. 4c32d7f
+# commit hashes: require at least one a-f letter so plain 7+ digit numbers
+# (order ids, timestamps) aren't false-flagged as unverified commits
+_COMMIT = re.compile(r"\b(?=[0-9a-f]*[a-f])[0-9a-f]{7,40}\b")
 
 
 REPORT_PROMPT = """\
@@ -101,6 +108,9 @@ def verify_citations(markdown: str, state: BeaconState) -> str:
     verified = total - len(unverified)
     footer = f"\n\n---\n*Citation gate: {verified}/{total} citations verified against gathered evidence.*"
     if unverified:
+        # ops signal: how often the model invents citations
+        logger.warning("citation gate flagged %d unverified citation(s): %s",
+                       len(unverified), sorted(set(unverified)))
         footer += f" *Flagged: {', '.join(sorted(set(unverified)))}.*"
     return checked + footer
 

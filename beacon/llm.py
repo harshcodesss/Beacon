@@ -1,20 +1,36 @@
-"""Shared rate limiter + retry policy for every Gemini call in the pipeline.
+"""Per-model rate limiting + retry policy for every Gemini call.
 
-The investigator loop (and a full eval suite) fires calls in bursts; the free
-tier caps requests-per-minute. One process-wide limiter, imported by all
-agents, paces the WHOLE pipeline under that ceiling, and max_retries lets a
-transient 429 recover with backoff instead of killing the run.
+Free-tier quotas are per model, so each model id gets its own process-wide
+InMemoryRateLimiter; every agent asks for the limiter of the model it runs on,
+and pacing holds across the whole pipeline — even when different agents run on
+different models. max_retries lets transient 429/503s recover with backoff
+instead of killing a run.
 """
 
 from langchain_core.rate_limiters import InMemoryRateLimiter
 
-# ~12 requests/min — comfortably under the free-tier 15 RPM ceiling. Shared, so
-# pacing holds across agent boundaries, not just within one agent.
-RATE_LIMITER = InMemoryRateLimiter(
-    requests_per_second=0.2,
-    check_every_n_seconds=0.1,
-    max_bucket_size=2,
-)
-
-# langchain retries transient errors (incl. 429) with exponential backoff.
 MAX_RETRIES = 6
+
+# requests-per-minute we pace to — slightly under the AI Studio console limits
+_RPM_BY_MODEL = {
+    "gemini-3.5-flash": 4,        # console 5 RPM
+    "gemini-3-flash-preview": 4,  # console "Gemini 3 Flash", 5 RPM
+    "gemini-2.5-flash": 4,        # console 5 RPM
+    "gemini-2.5-flash-lite": 8,   # console 10 RPM
+    "gemini-3.1-flash-lite": 12,  # console 15 RPM
+}
+_DEFAULT_RPM = 4  # conservative for models not listed above
+
+_limiters: dict[str, InMemoryRateLimiter] = {}
+
+
+def get_rate_limiter(model: str) -> InMemoryRateLimiter:
+    """One shared limiter per model id (created lazily)."""
+    if model not in _limiters:
+        rpm = _RPM_BY_MODEL.get(model, _DEFAULT_RPM)
+        _limiters[model] = InMemoryRateLimiter(
+            requests_per_second=rpm / 60.0,
+            check_every_n_seconds=0.1,
+            max_bucket_size=1,
+        )
+    return _limiters[model]
