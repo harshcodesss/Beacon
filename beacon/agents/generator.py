@@ -16,6 +16,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import BaseModel, Field
 
 from beacon.graph.state import BeaconState
+from beacon.llm import MAX_RETRIES, RATE_LIMITER
 
 load_dotenv()
 
@@ -27,7 +28,9 @@ MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 llm = ChatGoogleGenerativeAI(
     model=MODEL,
     temperature=0.4,
-    google_api_key=API_KEY
+    google_api_key=API_KEY,
+    rate_limiter=RATE_LIMITER,
+    max_retries=MAX_RETRIES,
 )
 
 

@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field
 
 from beacon.agents.tools import TOOLS, TOOLS_BY_NAME
 from beacon.graph.state import BeaconState
+from beacon.llm import MAX_RETRIES, RATE_LIMITER
 
 load_dotenv()
 
@@ -28,9 +29,11 @@ API_KEY = os.environ.get("GEMINI_API_KEY")
 MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 
 llm = ChatGoogleGenerativeAI(
-    model=MODEL, 
-    temperature=0.1, 
-    google_api_key=API_KEY
+    model=MODEL,
+    temperature=0.1,
+    google_api_key=API_KEY,
+    rate_limiter=RATE_LIMITER,
+    max_retries=MAX_RETRIES,
 ).bind_tools(TOOLS)
 
 
