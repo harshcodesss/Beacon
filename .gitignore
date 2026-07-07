@@ -35,6 +35,7 @@ docs/
 *.log
 postgres-data/
 .demo_target/
+beacon/eval/ground_truth/
 
 # raw landing assets (processed copies live in frontend/public/hero/)
 frontend/hero-section-content/
