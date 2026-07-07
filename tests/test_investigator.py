@@ -94,3 +94,19 @@ def test_one_verdict_per_hypothesis(monkeypatch):
 
 def test_run_tool_handles_unknown_and_errors():
     assert "unknown tool" in _run_tool({"name": "nope", "args": {}, "id": "1"})
+
+
+def test_none_verdict_falls_back_to_inconclusive(monkeypatch):
+    model = _ScriptedModel([AIMessage(content="done", tool_calls=[])])
+
+    class _NoneVerdictLLM:
+        def invoke(self, _m):
+            return None
+
+    monkeypatch.setattr(investigator, "llm", model)
+    monkeypatch.setattr(investigator, "_verdict_llm", _NoneVerdictLLM())
+    monkeypatch.setattr(investigator, "_run_tool", lambda tc: "x")
+    out = investigator.investigate({"hypotheses": [{"id": "H1"}], "context_pack": {}})
+    v = out["verdicts"][0]
+    assert v["verdict"] == "inconclusive" and v["hypothesis_id"] == "H1"
+    assert v["confidence"] == 0.0

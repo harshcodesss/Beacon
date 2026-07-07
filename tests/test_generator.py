@@ -44,3 +44,27 @@ def test_generate_fills_missing_ids(monkeypatch):
 
     out = generator.generate_hypotheses({"context_pack": {}})["hypotheses"]
     assert all(h["id"] for h in out)  # blank ids were backfilled
+
+
+def test_generate_retries_once_on_none_then_succeeds(monkeypatch):
+    two = HypothesisList(hypotheses=[_h("H1", 0.9)])
+
+    class _FlakyLLM:
+        def __init__(self):
+            self.calls = 0
+
+        def invoke(self, _p):
+            self.calls += 1
+            return None if self.calls == 1 else two
+
+    flaky = _FlakyLLM()
+    monkeypatch.setattr(generator, "_structured_llm", flaky)
+    out = generator.generate_hypotheses({"context_pack": {}})["hypotheses"]
+    assert len(out) == 1 and flaky.calls == 2  # first None, retried once
+
+
+def test_generate_raises_clear_error_after_two_nones(monkeypatch):
+    import pytest
+    monkeypatch.setattr(generator, "_structured_llm", _FakeLLM(None))
+    with pytest.raises(RuntimeError, match="failed twice"):
+        generator.generate_hypotheses({"context_pack": {}})

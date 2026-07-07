@@ -61,3 +61,11 @@ def test_write_report_handles_list_shaped_content(monkeypatch):
     out = write_report(_STATE)["report"]
     assert "app.log:140" in out           # extracted from the list block
     assert "1/1 citations verified" in out
+
+
+def test_plain_numbers_are_not_flagged_as_commits():
+    # order ids / timestamps must not be false-flagged as unverified commits
+    md = "Order 12345678 failed at 20260706 while charging."
+    out = verify_citations(md, _STATE)
+    assert "[unverified]" not in out
+    assert "0/0 citations" in out
