@@ -1,0 +1,111 @@
+"""Agent 4 — Reporter. One LLM call + one deterministic Python gate.
+
+The LLM turns the verdicts into a markdown incident report; then a pure-Python
+citation gate re-checks every citation the report makes against the evidence
+the pipeline actually gathered. Any citation the Reporter invented — a log line
+or commit hash not backed by a verdict — is flagged [unverified]. The LLM
+proposes prose; deterministic code guarantees the evidence. This gate is the
+anti-hallucination backstop and does not itself call the model.
+"""
+
+import json
+import os
+import re
+
+from dotenv import load_dotenv
+from langchain_google_genai import ChatGoogleGenerativeAI
+
+from beacon.graph.state import BeaconState
+
+load_dotenv()
+
+API_KEY = os.environ.get("GEMINI_API_KEY")
+MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+
+# some fluency for prose, but grounded
+llm = ChatGoogleGenerativeAI(model=MODEL, temperature=0.3, google_api_key=API_KEY)
+
+# citation shapes the gate recognises
+_LOG_CITE = re.compile(r"[\w.-]+\.log:\d+")   # e.g. app.log:1042
+_COMMIT = re.compile(r"\b[0-9a-f]{7,40}\b")    # e.g. 4c32d7f
+
+
+REPORT_PROMPT = """\
+You are writing an incident root-cause report for an on-call engineer. You are
+given the investigated hypotheses, their verdicts (accept / reject /
+inconclusive) with evidence citations, and the incident context.
+
+Write the report in markdown with EXACTLY these sections:
+1. **Root cause** — one line. If no hypothesis was accepted, say so plainly.
+2. **Confidence** — high / medium / low, from the accepted verdict.
+3. **Evidence** — bullet list, each citing the exact tokens from the verdicts
+   (log citations like `app.log:1042`, commit hashes). Cite ONLY things present
+   in the verdict evidence below — never invent a citation.
+4. **Ruled out** — the rejected/inconclusive hypotheses and one line each on why.
+5. **Suggested next step** — for the human. Diagnosis only; NEVER propose an
+   automated remediation or claim you fixed anything.
+
+Be concise. A stranger should be able to act on this report.
+"""
+
+
+def _report_prompt(verdicts: list[dict], hypotheses: list[dict], context_pack: dict) -> str:
+    slim_pack = {k: context_pack.get(k) for k in ("service", "error_rate", "recent_deploys")}
+    return (
+        REPORT_PROMPT
+        + "\n\nHYPOTHESES:\n" + json.dumps(hypotheses, indent=2, default=str)
+        + "\n\nVERDICTS (with evidence citations):\n" + json.dumps(verdicts, indent=2, default=str)
+        + "\n\nCONTEXT:\n" + json.dumps(slim_pack, indent=2, default=str)
+    )
+
+
+def _valid_citations(state: BeaconState) -> tuple[set[str], set[str]]:
+    """The pool of citations the pipeline actually produced: log citations that
+    appear in verdict evidence, and commit hashes from the recent deploys."""
+    log_cites: set[str] = set()
+    for verdict in state.get("verdicts") or []:
+        for ev in verdict.get("evidence", []):
+            log_cites.update(_LOG_CITE.findall(str(ev)))
+    commits = {c["hash"] for c in (state.get("context_pack") or {}).get("recent_deploys", [])}
+    return log_cites, commits
+
+
+def verify_citations(markdown: str, state: BeaconState) -> str:
+    """Flag every citation in the report not backed by gathered evidence, and
+    append a citation-gate audit line. Pure, deterministic, no LLM."""
+    valid_logs, valid_commits = _valid_citations(state)
+    unverified: list[str] = []
+
+    def _flag_log(m: re.Match) -> str:
+        cite = m.group(0)
+        if cite in valid_logs:
+            return cite
+        unverified.append(cite)
+        return f"{cite} [unverified]"
+
+    def _flag_commit(m: re.Match) -> str:
+        h = m.group(0)
+        if any(h == c or c.startswith(h) or h.startswith(c) for c in valid_commits):
+            return h
+        unverified.append(h)
+        return f"{h} [unverified]"
+
+    total = len(_LOG_CITE.findall(markdown)) + len(_COMMIT.findall(markdown))
+    checked = _LOG_CITE.sub(_flag_log, markdown)
+    checked = _COMMIT.sub(_flag_commit, checked)
+
+    verified = total - len(unverified)
+    footer = f"\n\n---\n*Citation gate: {verified}/{total} citations verified against gathered evidence.*"
+    if unverified:
+        footer += f" *Flagged: {', '.join(sorted(set(unverified)))}.*"
+    return checked + footer
+
+
+def write_report(state: BeaconState) -> dict:
+    prompt = _report_prompt(
+        verdicts=state.get("verdicts") or [],
+        hypotheses=state.get("hypotheses") or [],
+        context_pack=state.get("context_pack") or {},
+    )
+    raw = llm.invoke(prompt).content
+    return {"report": verify_citations(raw, state)}
