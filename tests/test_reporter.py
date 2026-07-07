@@ -51,3 +51,13 @@ def test_write_report_runs_gate_on_llm_output(monkeypatch):
     out = write_report(_STATE)["report"]
     assert "app.log:140" in out and "app.log:9999 [unverified]" in out
     assert "Citation gate:" in out
+
+
+def test_write_report_handles_list_shaped_content(monkeypatch):
+    # some models (e.g. gemini-3.1-flash-lite) return content as a list of blocks
+    blocks = [{"type": "text", "text": "Root cause: X. See app.log:140."}]
+    monkeypatch.setattr(reporter, "llm",
+                        SimpleNamespace(invoke=lambda _p: SimpleNamespace(content=blocks)))
+    out = write_report(_STATE)["report"]
+    assert "app.log:140" in out           # extracted from the list block
+    assert "1/1 citations verified" in out

@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from beacon.graph.state import BeaconState
+from beacon.llm import MAX_RETRIES, RATE_LIMITER
 
 load_dotenv()
 
@@ -23,7 +24,10 @@ API_KEY = os.environ.get("GEMINI_API_KEY")
 MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 
 # some fluency for prose, but grounded
-llm = ChatGoogleGenerativeAI(model=MODEL, temperature=0.3, google_api_key=API_KEY)
+llm = ChatGoogleGenerativeAI(
+    model=MODEL, temperature=0.3, google_api_key=API_KEY,
+    rate_limiter=RATE_LIMITER, max_retries=MAX_RETRIES,
+)
 
 # citation shapes the gate recognises
 _LOG_CITE = re.compile(r"[\w.-]+\.log:\d+")   # e.g. app.log:1042
@@ -101,11 +105,24 @@ def verify_citations(markdown: str, state: BeaconState) -> str:
     return checked + footer
 
 
+def _as_text(content) -> str:
+    """AIMessage.content is str for some models but a list of content blocks
+    for others (e.g. gemini-3.1-flash-lite). Normalise to a plain string so the
+    citation gate's regex always has text to work on."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = [p if isinstance(p, str) else p.get("text", "") for p in content
+                 if isinstance(p, (str, dict))]
+        return "".join(parts)
+    return str(content)
+
+
 def write_report(state: BeaconState) -> dict:
     prompt = _report_prompt(
         verdicts=state.get("verdicts") or [],
         hypotheses=state.get("hypotheses") or [],
         context_pack=state.get("context_pack") or {},
     )
-    raw = llm.invoke(prompt).content
+    raw = _as_text(llm.invoke(prompt).content)
     return {"report": verify_citations(raw, state)}
