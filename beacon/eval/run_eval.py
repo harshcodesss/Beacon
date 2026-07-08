@@ -13,15 +13,48 @@ This is dev tooling, not shipped — it starts/stops the demo uvicorn itself.
 """
 
 import argparse
+import json
 import os
 import re
 import subprocess
 import time
+from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from langchain_core.callbacks import BaseCallbackHandler
+
 from beacon.eval.faults import FAULTS, Fault, write_ground_truth
 from beacon.eval.judge import judge_scenario, score_suite
+
+
+class _Meter(BaseCallbackHandler):
+    """Counts LLM API calls (per graph node) and tokens for one scenario."""
+
+    def __init__(self):
+        self.calls = defaultdict(int)
+        self.tokens_in = 0
+        self.tokens_out = 0
+        self._run_node = {}
+
+    def on_chat_model_start(self, serialized, messages, *, run_id,
+                            parent_run_id=None, tags=None, metadata=None, **kw):
+        node = (metadata or {}).get("langgraph_node", "?")
+        self.calls[node] += 1
+        self._run_node[run_id] = node
+
+    def on_llm_end(self, response, *, run_id, parent_run_id=None, **kw):
+        self._run_node.pop(run_id, None)
+        try:
+            usage = response.generations[0][0].message.usage_metadata or {}
+        except (AttributeError, IndexError):
+            usage = {}
+        self.tokens_in += usage.get("input_tokens", 0)
+        self.tokens_out += usage.get("output_tokens", 0)
+
+    @property
+    def total_calls(self) -> int:
+        return sum(self.calls.values())
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TARGET = REPO_ROOT / ".demo_target"
@@ -111,11 +144,21 @@ def run_one(fault: Fault, use_llm: bool, clean_head: str) -> dict:
     guilty_commit = _apply_code_fault(fault) if fault.edits else None
     _run_phase(_child_env(fault.env), INCIDENT_SECONDS)  # fault injected
 
-    state = app.invoke({"incident_id": fault.name, "budget": {"max_tool_calls": 15}})
+    meter = _Meter()
+    state = app.invoke(
+        {"incident_id": fault.name, "budget": {"max_tool_calls": 15}},
+        config={"callbacks": [meter]},
+    )
     result = judge_scenario(state, fault.ground_truth(guilty_commit), use_llm=use_llm)
     result["fault"] = fault.name
+    result["llm_calls"] = dict(meter.calls)
+    result["total_llm_calls"] = meter.total_calls
+    result["tokens_in"] = meter.tokens_in
+    result["tokens_out"] = meter.tokens_out
+    result["tool_calls_used"] = (state.get("budget") or {}).get("tool_calls_used")
     print(f"  {fault.name:22} top1={result['matched_top1']!s:5} "
-          f"top3={result['matched_top3']!s:5} (accepted={result['n_accepted']})")
+          f"top3={result['matched_top3']!s:5} (accepted={result['n_accepted']}) "
+          f"calls={meter.total_calls} tokens={meter.tokens_in}/{meter.tokens_out}")
     return result
 
 
@@ -123,6 +166,8 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--include-holdout", action="store_true")
     parser.add_argument("--no-llm", action="store_true")
+    parser.add_argument("--json-out", default=None,
+                        help="write full per-scenario results (incl. API-call counts) to this path")
     args = parser.parse_args()
 
     write_ground_truth(REPO_ROOT / "beacon" / "eval" / "ground_truth")
@@ -130,13 +175,28 @@ def main() -> None:
 
     clean_head = _git_target("rev-parse", "HEAD")
     print(f"running {len(scenarios)} scenarios...")
-    results = [run_one(f, use_llm=not args.no_llm, clean_head=clean_head) for f in scenarios]
-    _git_target("reset", "--hard", clean_head)  # leave the target pristine
+    results = []
+    try:
+        for fault in scenarios:
+            results.append(run_one(fault, use_llm=not args.no_llm, clean_head=clean_head))
+    finally:
+        _git_target("reset", "--hard", clean_head)  # leave the target pristine
+        if results and args.json_out:
+            Path(args.json_out).write_text(json.dumps({
+                "model": os.environ.get("BEACON_MODEL")
+                         or os.environ.get("GEMINI_MODEL") or "default",
+                "results": results,
+                "score": score_suite(results),
+                "total_llm_calls": sum(r["total_llm_calls"] for r in results),
+                "total_tokens_in": sum(r["tokens_in"] for r in results),
+                "total_tokens_out": sum(r["tokens_out"] for r in results),
+            }, indent=2))
 
     score = score_suite(results)
+    total_calls = sum(r["total_llm_calls"] for r in results)
     print(f"\nTOP-1 accuracy: {score['top1_accuracy']:.0%}"
           f"   TOP-3 accuracy: {score['top3_accuracy']:.0%}"
-          f"   ({score['scenarios']} scenarios)")
+          f"   ({score['scenarios']} scenarios, {total_calls} API calls)")
 
 
 if __name__ == "__main__":
