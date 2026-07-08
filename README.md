@@ -63,6 +63,21 @@ the report on the triggering pull request. **You bring your own Gemini API key
 and pick the model.** Install guide with a copy-paste workflow:
 **[INSTALL.md](INSTALL.md)**.
 
+## Benchmark
+
+Every accuracy claim comes from the fault-injection harness (`beacon/eval/`):
+8 scenarios that each break a demo service in one known way — missing env var,
+dependency timeout/outage, misconfigured timeout, **a planted guilty commit** —
+and score whether Beacon's accepted root cause matches the ground truth. Two
+scenarios are held out and never used while iterating prompts.
+
+Latest run (all agents on `gemini-3.1-flash-lite` — the smallest model, so a
+floor): **top-1 62% (5/8)**, including correct commit-level attribution on the
+planted-commit scenario. Notably, **every miss was an abstention** — when
+uncertain the pipeline accepted no hypothesis rather than accuse a wrong cause;
+it never produced a false root cause across the suite. Citation validity was
+100% on every completed run.
+
 ## Model efficiency
 
 **Bring your own LLM.** The pipeline runs on any LangChain-supported provider
