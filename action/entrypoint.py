@@ -73,7 +73,9 @@ def _prepare_real_config(log_path: str) -> None:
     os.environ["BEACON_CONFIG"] = _RUNTIME_CONFIG
 
 
-_PROVIDER_KEYS = ("GEMINI_API_KEY", "GOOGLE_API_KEY", "OPENAI_API_KEY", "LLM_API_KEY")
+_PROVIDER_KEYS = (
+    "GEMINI_API_KEY", "GOOGLE_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "LLM_API_KEY",
+)
 
 
 def load_graph(log_path: str):

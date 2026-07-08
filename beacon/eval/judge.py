@@ -63,7 +63,7 @@ def _llm_match(hypothesis: dict, truth: dict) -> bool:
 
         # any provider key present means the fuzzy fallback can run
         if not any(os.environ.get(k) for k in
-                   ("GEMINI_API_KEY", "GOOGLE_API_KEY", "OPENAI_API_KEY")):
+                   ("GEMINI_API_KEY", "GOOGLE_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY")):
             return False
         from beacon.llm import build_chat_model, resolve_model
         llm = build_chat_model(resolve_model("REPORTER"), temperature=0)

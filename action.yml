@@ -29,6 +29,10 @@ inputs:
     description: "Your OpenAI API key, for openai models."
     required: false
     default: ""
+  anthropic_api_key:
+    description: "Your Anthropic API key, for anthropic models."
+    required: false
+    default: ""
   log_path:
     description: "Path to the log file to triage, relative to the workspace."
     required: false
@@ -69,6 +73,7 @@ runs:
     BEACON_MODEL: ${{ inputs.llm_model }}
     GEMINI_API_KEY: ${{ inputs.gemini_api_key }}
     OPENAI_API_KEY: ${{ inputs.openai_api_key }}
+    ANTHROPIC_API_KEY: ${{ inputs.anthropic_api_key }}
     BEACON_API_KEY: ${{ inputs.beacon_api_key }}
     BEACON_LOG_PATH: ${{ inputs.log_path }}
     BEACON_WINDOW_MINUTES: ${{ inputs.window_minutes }}

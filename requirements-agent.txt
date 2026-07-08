@@ -6,6 +6,7 @@ langchain>=0.3
 langchain-core>=0.3
 langchain-google-genai>=2.0
 langchain-openai>=0.2
+langchain-anthropic>=0.2
 google-genai>=1.0
 drain3>=0.9.11
 GitPython>=3.1

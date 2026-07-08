@@ -17,12 +17,13 @@ COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # agent-core runtime deps (kept explicit: no dev/test extras in the image).
-# langchain provides init_chat_model; google_genai + openai providers shipped.
+# langchain provides init_chat_model; google_genai + openai + anthropic shipped.
 RUN pip install --no-cache-dir \
     "langgraph>=0.2" \
     "langchain>=0.3" \
     "langchain-google-genai>=2.0" \
     "langchain-openai>=0.2" \
+    "langchain-anthropic>=0.2" \
     "drain3>=0.9.11" \
     "PyYAML>=6.0" \
     "python-dotenv>=1.0"

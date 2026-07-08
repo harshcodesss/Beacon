@@ -72,6 +72,7 @@ provider key:
 ```bash
 BEACON_MODEL=google_genai:gemini-3.1-flash-lite   # + GEMINI_API_KEY / GOOGLE_API_KEY
 BEACON_MODEL=openai:gpt-4o                         # + OPENAI_API_KEY
+BEACON_MODEL=anthropic:claude-sonnet-5             # + ANTHROPIC_API_KEY
 ```
 
 Model choice is a cost/quality knob — the Investigator makes ~85–90% of the

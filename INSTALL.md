@@ -11,10 +11,11 @@ pick a tier. Delivering to a Beacon dashboard is optional.
 Pick a model and set the matching key. In your repository:
 **Settings → Secrets and variables → Actions → New repository secret**.
 
-| Model (`llm_model`)                    | Secret to set    | Get a key                                             |
-| -------------------------------------- | ---------------- | ----------------------------------------------------- |
-| `google_genai:gemini-3.1-flash-lite`   | `GEMINI_API_KEY` | [Google AI Studio](https://aistudio.google.com/apikey) |
-| `openai:gpt-4o`                        | `OPENAI_API_KEY` | [OpenAI](https://platform.openai.com/api-keys)         |
+| Model (`llm_model`)                    | Secret to set       | Get a key                                             |
+| -------------------------------------- | ------------------- | ----------------------------------------------------- |
+| `google_genai:gemini-3.1-flash-lite`   | `GEMINI_API_KEY`    | [Google AI Studio](https://aistudio.google.com/apikey) |
+| `openai:gpt-4o`                        | `OPENAI_API_KEY`    | [OpenAI](https://platform.openai.com/api-keys)         |
+| `anthropic:claude-sonnet-5`            | `ANTHROPIC_API_KEY` | [Anthropic Console](https://console.anthropic.com/)    |
 
 > Without any provider key the Action still runs — it falls back to a bundled
 > mock that emits a canned demo report, so you can wire up the workflow before
@@ -79,6 +80,7 @@ setting step `env`:
 | `llm_model`      | no       | `google_genai:gemini-3.1-flash-lite` | Provider-prefixed model string (any LangChain provider) |
 | `gemini_api_key` | no\*     | —                                    | Google/Gemini key, for `google_genai:` models           |
 | `openai_api_key` | no\*     | —                                    | OpenAI key, for `openai:` models                        |
+| `anthropic_api_key` | no\* | —                                    | Anthropic key, for `anthropic:` models                  |
 | `log_path`       | no       | `./logs/app.log`                     | Log file to triage, relative to the workspace           |
 | `window_minutes` | no       | `30`                                 | Trailing minutes of logs handed to the agent            |
 | `beacon_api_key` | no       | —                                    | Beacon dashboard key; omit to skip dashboard delivery   |
