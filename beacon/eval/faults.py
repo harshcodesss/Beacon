@@ -24,14 +24,17 @@ class Fault:
     description: str
     guilty_component: str
     env: dict[str, str | None] = field(default_factory=dict)
-    guilty_commit: str | None = None      # set dynamically for code faults
+    # code faults: (path, old, new) edits applied to the target and committed
+    # with commit_message; the resulting hash becomes ground-truth guilty_commit
+    edits: tuple[tuple[str, str, str], ...] = ()
+    commit_message: str = ""
     holdout: bool = False
 
-    def ground_truth(self) -> dict:
+    def ground_truth(self, guilty_commit: str | None = None) -> dict:
         return {
             "fault_type": self.fault_type,
             "guilty_component": self.guilty_component,
-            "guilty_commit": self.guilty_commit,
+            "guilty_commit": guilty_commit,
             "description": self.description,
         }
 
@@ -57,6 +60,35 @@ FAULTS: list[Fault] = [
         description="Payment provider rejecting ~half of charges — /orders return 502s",
         guilty_component="payments.py",
         env={"DB_URL": "sqlite:///demo.db", "PAYMENT_FAIL_RATE": "0.5"},
+    ),
+    Fault(
+        name="bad_config_timeout",
+        fault_type="config",
+        description="PAYMENT_TIMEOUT_MS misconfigured to 1ms — every charge times out instantly",
+        guilty_component="payments.py",
+        env={"DB_URL": "sqlite:///demo.db", "PAYMENT_TIMEOUT_MS": "1"},
+    ),
+    Fault(
+        name="payment_outage",
+        fault_type="dependency",
+        description="Payment provider rejecting ALL charges — every /orders returns 502",
+        guilty_component="payments.py",
+        env={"DB_URL": "sqlite:///demo.db", "PAYMENT_FAIL_RATE": "1.0"},
+    ),
+    Fault(
+        name="buggy_commit",
+        fault_type="code",
+        description="A fresh commit makes the payment client reject every charge",
+        guilty_component="payments.py",
+        env={"DB_URL": "sqlite:///demo.db"},
+        edits=((
+            "payments.py",
+            '    fail_rate = float(os.environ.get("PAYMENT_FAIL_RATE", "0"))',
+            '    fail_rate = float(os.environ.get("PAYMENT_FAIL_RATE", "0"))\n'
+            '    raise PaymentError(f"payment provider rejected charge for user '
+            '{user_id}: risk check failed")',
+        ),),
+        commit_message="tighten payment risk checks",
     ),
     Fault(
         name="slow_payment_provider",

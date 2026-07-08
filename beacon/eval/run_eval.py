@@ -74,18 +74,45 @@ def _backdate_logs(minutes: int) -> None:
     LOG.write_text("".join(out))
 
 
-def run_one(fault: Fault, use_llm: bool) -> dict:
+def _git_target(*args: str) -> str:
+    result = subprocess.run(
+        ["git", "-C", str(TARGET), "-c", "user.name=Demo Dev",
+         "-c", "user.email=dev@example.com", *args],
+        check=True, capture_output=True, text=True,
+    )
+    return result.stdout.strip()
+
+
+def _apply_code_fault(fault: Fault) -> str:
+    """Apply the fault's edits to the target and commit them — the guilty
+    commit the pipeline should find. Returns the commit hash."""
+    for path, old, new in fault.edits:
+        f = TARGET / path
+        text = f.read_text()
+        if old not in text:
+            raise RuntimeError(f"{fault.name}: edit anchor not found in {path}")
+        f.write_text(text.replace(old, new, 1))
+        _git_target("add", path)
+    _git_target("commit", "-m", fault.commit_message or f"change for {fault.name}")
+    return _git_target("rev-parse", "HEAD")
+
+
+def run_one(fault: Fault, use_llm: bool, clean_head: str) -> dict:
     from beacon.graph.build import app  # lazy: needs the API key
 
+    # every scenario starts from the pristine target: no code-fault bleed-over
+    _git_target("reset", "--hard", clean_head)
     LOG.parent.mkdir(exist_ok=True)
     LOG.write_text("")
 
     _run_phase(_child_env({}), BASELINE_SECONDS)   # clean baseline
     _backdate_logs(60)
+
+    guilty_commit = _apply_code_fault(fault) if fault.edits else None
     _run_phase(_child_env(fault.env), INCIDENT_SECONDS)  # fault injected
 
     state = app.invoke({"incident_id": fault.name, "budget": {"max_tool_calls": 15}})
-    result = judge_scenario(state, fault.ground_truth(), use_llm=use_llm)
+    result = judge_scenario(state, fault.ground_truth(guilty_commit), use_llm=use_llm)
     result["fault"] = fault.name
     print(f"  {fault.name:22} top1={result['matched_top1']!s:5} "
           f"top3={result['matched_top3']!s:5} (accepted={result['n_accepted']})")
@@ -101,8 +128,10 @@ def main() -> None:
     write_ground_truth(REPO_ROOT / "beacon" / "eval" / "ground_truth")
     scenarios = [f for f in FAULTS if args.include_holdout or not f.holdout]
 
+    clean_head = _git_target("rev-parse", "HEAD")
     print(f"running {len(scenarios)} scenarios...")
-    results = [run_one(f, use_llm=not args.no_llm) for f in scenarios]
+    results = [run_one(f, use_llm=not args.no_llm, clean_head=clean_head) for f in scenarios]
+    _git_target("reset", "--hard", clean_head)  # leave the target pristine
 
     score = score_suite(results)
     print(f"\nTOP-1 accuracy: {score['top1_accuracy']:.0%}"

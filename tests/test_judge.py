@@ -71,3 +71,26 @@ def test_score_suite_aggregates():
 def test_two_scenarios_are_held_out():
     # overfitting guard: some scenarios never seen during prompt iteration
     assert sum(f.holdout for f in FAULTS) >= 2
+
+
+def test_suite_has_at_least_eight_unique_scenarios():
+    names = [f.name for f in FAULTS]
+    assert len(names) == len(set(names))
+    assert len(names) >= 8
+
+
+def test_code_fault_edit_anchors_exist_in_demo_app():
+    # a code fault's `old` anchor must exist in the demo-app source (the seed
+    # tweaks don't touch these lines), or the harness would error mid-run
+    from pathlib import Path
+    demo = Path(__file__).resolve().parents[1] / "demo_app"
+    for fault in FAULTS:
+        for path, old, _new in fault.edits:
+            assert old in (demo / path).read_text(), f"{fault.name}: anchor missing in {path}"
+
+
+def test_ground_truth_carries_dynamic_commit():
+    fault = FAULTS_BY_NAME["buggy_commit"]
+    truth = fault.ground_truth("abc1234def")
+    assert truth["guilty_commit"] == "abc1234def"
+    assert truth["fault_type"] == "code"
