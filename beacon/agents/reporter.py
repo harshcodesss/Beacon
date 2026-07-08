@@ -10,29 +10,20 @@ anti-hallucination backstop and does not itself call the model.
 
 import json
 import logging
-import os
 import re
 
 from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
 
 from beacon.graph.state import BeaconState
-from beacon.llm import MAX_RETRIES, get_rate_limiter
+from beacon.llm import build_chat_model, resolve_model
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-API_KEY = os.environ.get("GEMINI_API_KEY")
-# per-agent override first (cost tiering), then the pipeline-wide default
-MODEL = os.environ.get("REPORTER_MODEL") or os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
-
-llm = ChatGoogleGenerativeAI(
-    model=MODEL,
-    temperature=0.3,
-    google_api_key=API_KEY,
-    rate_limiter=get_rate_limiter(MODEL), max_retries=MAX_RETRIES,
-)
+# some fluency for prose, but grounded
+MODEL = resolve_model("REPORTER")
+llm = build_chat_model(MODEL, temperature=0.3)
 
 # citation shapes the gate recognises
 _LOG_CITE = re.compile(r"[\w.-]+\.log:\d+")   # e.g. app.log:1042

@@ -10,14 +10,12 @@ commit/component + tool-checkable evidence".
 
 import json
 import logging
-import os
 
 from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import BaseModel, Field
 
 from beacon.graph.state import BeaconState
-from beacon.llm import MAX_RETRIES, get_rate_limiter
+from beacon.llm import build_chat_model, resolve_model
 
 load_dotenv()
 
@@ -25,17 +23,8 @@ logger = logging.getLogger(__name__)
 
 MAX_HYPOTHESES = 5
 
-API_KEY = os.environ.get("GEMINI_API_KEY")
-# per-agent override first (cost tiering), then the pipeline-wide default
-MODEL = os.environ.get("GENERATOR_MODEL") or os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
-
-llm = ChatGoogleGenerativeAI(
-    model=MODEL,
-    temperature=0.4,
-    google_api_key=API_KEY,
-    rate_limiter=get_rate_limiter(MODEL),
-    max_retries=MAX_RETRIES,
-)
+MODEL = resolve_model("GENERATOR")
+llm = build_chat_model(MODEL, temperature=0.4)
 
 
 class Hypothesis(BaseModel):

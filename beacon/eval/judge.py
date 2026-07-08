@@ -54,23 +54,19 @@ def _deterministic_match(hypothesis: dict, truth: dict) -> bool | None:
 
 
 def _llm_match(hypothesis: dict, truth: dict) -> bool:
-    """One Gemini call as a fuzzy arbiter. Fails safe to False (e.g. no key)."""
+    """One LLM call as a fuzzy arbiter. Fails safe to False (e.g. no key)."""
     try:
-        from langchain_google_genai import ChatGoogleGenerativeAI
         from pydantic import BaseModel
 
         class _Match(BaseModel):
             matches: bool
 
-        key = os.environ.get("GEMINI_API_KEY")
-        if not key:
+        # any provider key present means the fuzzy fallback can run
+        if not any(os.environ.get(k) for k in
+                   ("GEMINI_API_KEY", "GOOGLE_API_KEY", "OPENAI_API_KEY")):
             return False
-        from beacon.llm import MAX_RETRIES, get_rate_limiter
-        model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
-        llm = ChatGoogleGenerativeAI(
-            model=model, temperature=0, google_api_key=key,
-            rate_limiter=get_rate_limiter(model), max_retries=MAX_RETRIES,
-        )
+        from beacon.llm import build_chat_model, resolve_model
+        llm = build_chat_model(resolve_model("REPORTER"), temperature=0)
         prompt = (
             "Does this hypothesis identify the same root cause as the ground truth?\n"
             f"HYPOTHESIS: {hypothesis.get('statement')} "
