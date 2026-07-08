@@ -50,18 +50,22 @@ export function Stamp({
   );
 }
 
-/** One word of a fill headline: gray until its scroll moment. */
+/** One word of a fill headline: gray until its scroll moment, then fills to
+ *  near-black — or to the brand orange when `accent` marks it a keyword. */
 export function FillWord({
   progress,
   start,
   end,
+  accent = false,
   children,
 }: {
   progress: MotionValue<number>;
   start: number;
   end: number;
+  accent?: boolean;
   children: string;
 }) {
-  const color = useTransform(progress, [start, end, 1], ["#d4d4d8", "#18181b", "#18181b"]);
+  const filled = accent ? "#ff7f11" : "#18181b";
+  const color = useTransform(progress, [start, end, 1], ["#d4d4d8", filled, filled]);
   return <motion.span style={{ color }}>{children} </motion.span>;
 }

@@ -86,10 +86,11 @@ export function BeatNoise() {
       <section id="story" className="relative overflow-hidden bg-surface py-32">
         <div className="mx-auto max-w-4xl space-y-10 px-5 sm:px-8">
           <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-zinc-500">
-            03:12 AM — deploy #4127 failed
+            03:12:04 AM · Beacon collects
           </p>
           <h2 className="text-4xl font-extrabold tracking-tight text-zinc-900 sm:text-5xl">
-            {HEADLINE.join(" ")}
+            Somewhere in 50,000 lines is <span className="text-beacon">one sentence</span> that
+            matters.
           </h2>
           <div className="rounded-lg border border-edge border-l-4 border-l-beacon bg-white px-5 py-4 font-mono text-sm text-zinc-800 shadow-sm">
             {SIGNAL_LINE}
@@ -109,7 +110,7 @@ export function BeatNoise() {
         <div className="relative mx-auto w-full max-w-4xl space-y-10 px-5 sm:px-8">
           <Reveal progress={scrollYProgress} at={0.06}>
             <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-zinc-500">
-              03:12 AM — deploy #4127 failed
+              03:12:04 AM · Beacon collects
             </p>
           </Reveal>
 
@@ -120,6 +121,7 @@ export function BeatNoise() {
                 progress={scrollYProgress}
                 start={0.12 + (i / HEADLINE.length) * 0.38}
                 end={0.16 + (i / HEADLINE.length) * 0.38}
+                accent={i === 5 || i === 6}
               >
                 {word}
               </FillWord>

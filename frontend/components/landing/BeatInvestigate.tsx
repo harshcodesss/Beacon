@@ -165,10 +165,10 @@ function Intro() {
   return (
     <div className="space-y-5">
       <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-zinc-500">
-        Beat 02 — Beacon investigates
+        03:12:06 AM · Beacon investigates
       </p>
       <h2 className="text-4xl font-extrabold tracking-tight text-zinc-900 sm:text-5xl">
-        Three hypotheses. Real tool calls. One verdict.
+        Three hypotheses. Real tool calls. <span className="text-beacon">One verdict.</span>
       </h2>
       <p className="max-w-md text-base leading-relaxed text-zinc-600">
         Beacon doesn&apos;t summarize your logs — it argues with them. Every hypothesis is
