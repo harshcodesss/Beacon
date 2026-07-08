@@ -73,10 +73,13 @@ def _prepare_real_config(log_path: str) -> None:
     os.environ["BEACON_CONFIG"] = _RUNTIME_CONFIG
 
 
+_PROVIDER_KEYS = ("GEMINI_API_KEY", "GOOGLE_API_KEY", "OPENAI_API_KEY", "LLM_API_KEY")
+
+
 def load_graph(log_path: str):
-    """Return (graph, kind). Real core needs a Gemini key; anything else
+    """Return (graph, kind). Real core needs an LLM provider key; anything else
     falls back to the bundled mock so the action stays try-before-you-buy."""
-    if os.environ.get("GEMINI_API_KEY"):
+    if any(os.environ.get(k) for k in _PROVIDER_KEYS):
         try:
             _prepare_real_config(log_path)
             from beacon.graph.build import app as real_graph
@@ -84,9 +87,13 @@ def load_graph(log_path: str):
             return real_graph, "real"
         except ModuleNotFoundError:
             log("warning", "beacon package missing from image; using bundled mock")
+        except Exception as exc:  # noqa: BLE001 - e.g. model/key mismatch at construct
+            log("warning",
+                f"Could not load the real agent core ({exc}); using bundled mock. "
+                "Check that your BEACON_MODEL provider matches the key you set.")
     else:
         log("warning",
-            "No gemini_api_key input set — using the bundled mock "
+            "No LLM provider key set — using the bundled mock "
             "(canned demo report, not real triage).")
     from mock_beacon import app as mock_graph
     return mock_graph, "mock"

@@ -11,10 +11,14 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends git \
     && rm -rf /var/lib/apt/lists/*
 
-# agent-core runtime deps only (no dev/test extras)
+# agent-core runtime deps only (no dev/test extras). langchain provides
+# init_chat_model; the provider integrations shipped here cover google_genai
+# and openai out of the box (add more provider packages to support others).
 RUN pip install --no-cache-dir \
     "langgraph>=0.2" \
+    "langchain>=0.3" \
     "langchain-google-genai>=2.0" \
+    "langchain-openai>=0.2" \
     "drain3>=0.9.11" \
     "PyYAML>=6.0" \
     "python-dotenv>=1.0"

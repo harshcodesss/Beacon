@@ -65,12 +65,20 @@ and pick the model.** Install guide with a copy-paste workflow:
 
 ## Model efficiency
 
-The pipeline runs on any **Gemini** model (stack: `langchain-google-genai`;
-support for other providers is a v2 candidate). Model choice is a cost/quality
-knob — the Investigator makes ~85–90% of the calls, so the cheapest lever is
-running a strong model on the two single-shot calls (Generator, Reporter) and a
-lite model on the call-heavy Investigator loop. Set that split with the
-per-agent overrides (`GENERATOR_MODEL` / `INVESTIGATOR_MODEL` / `REPORTER_MODEL`).
+**Bring your own LLM.** The pipeline runs on any LangChain-supported provider
+via a provider-prefixed model string — set `BEACON_MODEL` and the matching
+provider key:
+
+```bash
+BEACON_MODEL=google_genai:gemini-3.1-flash-lite   # + GEMINI_API_KEY / GOOGLE_API_KEY
+BEACON_MODEL=openai:gpt-4o                         # + OPENAI_API_KEY
+```
+
+Model choice is a cost/quality knob — the Investigator makes ~85–90% of the
+calls, so the cheapest lever is running a strong model on the two single-shot
+calls (Generator, Reporter) and a lite model on the call-heavy Investigator
+loop. Set that split with the per-agent overrides (`BEACON_GENERATOR_MODEL` /
+`BEACON_INVESTIGATOR_MODEL` / `BEACON_REPORTER_MODEL`).
 
 Measured on one frozen incident (a payment-timeout fault), instrumented per
 agent. **n=1 per config — directional, not statistical.**

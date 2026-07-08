@@ -2,18 +2,22 @@
 
 The Action runs Beacon's triage when your deploy workflow fails and comments an
 evidence-cited root-cause report on the pull request that triggered the deploy.
-You bring your own Gemini API key and choose the model — see the
-[model-efficiency table in the README](README.md#model-efficiency) to pick a
-tier. Delivering to a Beacon dashboard is optional.
+**You bring your own LLM key and choose the model** (any LangChain provider) —
+see the [model-efficiency table in the README](README.md#model-efficiency) to
+pick a tier. Delivering to a Beacon dashboard is optional.
 
-## 1. Add your Gemini API key as a repository secret
+## 1. Add your LLM provider key as a repository secret
 
-Get a key from [Google AI Studio](https://aistudio.google.com/apikey). In your
-repository: **Settings → Secrets and variables → Actions → New repository
-secret**, name it `GEMINI_API_KEY`, paste the key.
+Pick a model and set the matching key. In your repository:
+**Settings → Secrets and variables → Actions → New repository secret**.
 
-> Without a Gemini key the Action still runs — it falls back to a bundled mock
-> that emits a canned demo report, so you can wire up the workflow before
+| Model (`llm_model`)                    | Secret to set    | Get a key                                             |
+| -------------------------------------- | ---------------- | ----------------------------------------------------- |
+| `google_genai:gemini-3.1-flash-lite`   | `GEMINI_API_KEY` | [Google AI Studio](https://aistudio.google.com/apikey) |
+| `openai:gpt-4o`                        | `OPENAI_API_KEY` | [OpenAI](https://platform.openai.com/api-keys)         |
+
+> Without any provider key the Action still runs — it falls back to a bundled
+> mock that emits a canned demo report, so you can wire up the workflow before
 > committing a key.
 
 ## 2. Add the workflow
@@ -51,8 +55,8 @@ jobs:
       - name: Triage the failure
         uses: harshcodesss/Beacon@main
         with:
+          llm_model: google_genai:gemini-3.1-flash-lite   # see README
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
-          gemini_model: gemini-3.1-flash-lite   # see README model-efficiency
           log_path: ./logs/app.log
           window_minutes: 30
 ```
@@ -63,24 +67,26 @@ setting step `env`:
 
 ```yaml
         env:
-          GENERATOR_MODEL: gemini-3.5-flash
-          REPORTER_MODEL: gemini-3.5-flash
-          INVESTIGATOR_MODEL: gemini-3.1-flash-lite
+          BEACON_GENERATOR_MODEL: google_genai:gemini-3.5-flash
+          BEACON_REPORTER_MODEL: google_genai:gemini-3.5-flash
+          BEACON_INVESTIGATOR_MODEL: google_genai:gemini-3.1-flash-lite
 ```
 
 ## Inputs
 
-| Input            | Required | Default                  | Description                                             |
-| ---------------- | -------- | ------------------------ | ------------------------------------------------------- |
-| `gemini_api_key` | no\*     | —                        | Your Gemini API key. Omit to run the demo mock.         |
-| `gemini_model`   | no       | `gemini-3.1-flash-lite`  | Gemini model id for the pipeline (any Gemini model)     |
-| `log_path`       | no       | `./logs/app.log`         | Log file to triage, relative to the workspace           |
-| `window_minutes` | no       | `30`                     | Trailing minutes of logs handed to the agent            |
-| `beacon_api_key` | no       | —                        | Beacon dashboard key; omit to skip dashboard delivery   |
-| `api_url`        | no       | `https://api.beacon.dev` | Beacon API base URL (point at your own deployment)      |
-| `github_token`   | no       | workflow token           | Token used to comment; pass `""` to disable commenting  |
+| Input            | Required | Default                              | Description                                             |
+| ---------------- | -------- | ------------------------------------ | ------------------------------------------------------- |
+| `llm_model`      | no       | `google_genai:gemini-3.1-flash-lite` | Provider-prefixed model string (any LangChain provider) |
+| `gemini_api_key` | no\*     | —                                    | Google/Gemini key, for `google_genai:` models           |
+| `openai_api_key` | no\*     | —                                    | OpenAI key, for `openai:` models                        |
+| `log_path`       | no       | `./logs/app.log`                     | Log file to triage, relative to the workspace           |
+| `window_minutes` | no       | `30`                                 | Trailing minutes of logs handed to the agent            |
+| `beacon_api_key` | no       | —                                    | Beacon dashboard key; omit to skip dashboard delivery   |
+| `api_url`        | no       | `https://api.beacon.dev`             | Beacon API base URL (point at your own deployment)      |
+| `github_token`   | no       | workflow token                       | Token used to comment; pass `""` to disable commenting  |
 
-\* Required for **real** triage; without it the Action runs the bundled mock.
+\* Set the key matching your `llm_model`. Without any provider key the Action
+runs the bundled mock.
 
 ## Customizing what gets triaged
 
