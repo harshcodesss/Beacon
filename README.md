@@ -59,8 +59,37 @@ Developer settings → OAuth Apps) with callback URL
 ## GitHub Action
 
 Beacon can triage automatically when your deploy workflow fails and comment
-the report on the triggering pull request. Install guide with a copy-paste
-workflow: **[INSTALL.md](INSTALL.md)**.
+the report on the triggering pull request. **You bring your own Gemini API key
+and pick the model.** Install guide with a copy-paste workflow:
+**[INSTALL.md](INSTALL.md)**.
+
+## Model efficiency
+
+The pipeline runs on any **Gemini** model (stack: `langchain-google-genai`;
+support for other providers is a v2 candidate). Model choice is a cost/quality
+knob — the Investigator makes ~85–90% of the calls, so the cheapest lever is
+running a strong model on the two single-shot calls (Generator, Reporter) and a
+lite model on the call-heavy Investigator loop. Set that split with the
+per-agent overrides (`GENERATOR_MODEL` / `INVESTIGATOR_MODEL` / `REPORTER_MODEL`).
+
+Measured on one frozen incident (a payment-timeout fault), instrumented per
+agent. **n=1 per config — directional, not statistical.**
+
+| Config | Judge top-1 | LLM calls | Input tokens | Citation validity | Notes |
+| --- | --- | --- | --- | --- | --- |
+| **Mixed** — 3.5-flash gen+rep, 3.1-flash-lite investigator | ✅ correct | 20 | 117K | 100% | best quality-per-cost |
+| **All 3.1-flash-lite** | ❌ missed | 12 | 64K | 100% | cheapest; weaker hypotheses |
+| **All strong-flash** | — | — | — | — | 503-unavailable at test time* |
+
+\* The newest strong models (`gemini-3.5-flash`, `gemini-3-flash-preview`)
+returned `503 UNAVAILABLE` under load across repeated attempts, while the lite
+model completed every run — a real availability argument for the mixed config.
+Two operational findings: (1) pinning triage to the newest model is a
+reliability risk; (2) failed 503 retries still consume daily quota. Cost per
+triage is bounded by the tool-call budget (15 calls typical, ~28 max).
+
+Fuller methodology and the per-agent call/token breakdown live in
+[`docs/report_agentic.md`](docs/report_agentic.md).
 
 ## Architecture
 
@@ -74,15 +103,17 @@ FastAPI ────────────────────────
   │                                              │
   ▼                                              ▼
 Postgres ◄────────────────────────────── worker: beacon graph invoke
-  ▲                                       (real agent core, or mock until
-  │                                        the beacon package is present)
-  └── POST /webhook/github  ◄──────────── GitHub Action (API-key auth)
+  ▲                                       (real agent core; mock fallback
+  │                                        when no Gemini key is present)
+  └── POST /webhook/github  ◄──────────── GitHub Action (BYO Gemini key)
 ```
 
 - **Agent boundary** — the product shell integrates through one line:
-  `from beacon.graph.build import app as beacon_graph`. Until the agent-core
-  package ships, `backend/app/beacon_client.py` falls back to a mock with the
-  identical `invoke()` contract, so the swap is a one-line change.
+  `from beacon.graph.build import app as beacon_graph`. The `beacon/` package
+  ships inside the backend and Action images; `backend/app/beacon_client.py`
+  auto-detects it and `/healthz` reports `agent_core: "real"`. It falls back to
+  a mock with the identical `invoke()` contract when the package or a Gemini
+  key is absent, so a keyless demo still works.
 - **Auth** — NextAuth on the frontend; the backend verifies the GitHub
   access token against the GitHub API and issues its own JWT. All queries are
   user-scoped (missing and foreign resources are both 404).
@@ -117,10 +148,14 @@ CI runs the same lint/test/build matrix on every pull request
 ## Repository layout
 
 ```
+beacon/     Agent core: 5-agent LangGraph pipeline (collector, generator,
+            investigator, reporter) + eval harness (judge). The only public
+            entry point is beacon.graph.build.app
 backend/    FastAPI app, SQLAlchemy models, Alembic migrations, RQ jobs, tests
 frontend/   Next.js app: landing + sidebar shell (home, projects, incidents,
             settings, install)
 action/     GitHub Action (Docker) that triages failed deploys
+tests/      Agent-core test suite (pytest)
 .github/    CI workflow and README assets
 ```
 
