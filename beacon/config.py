@@ -5,8 +5,10 @@ Resolution order for the config file:
   2. $BEACON_CONFIG
   3. ./beacon.yml (current working directory)
 
-Missing file or missing keys fall back to DEFAULTS, so everything works
-out of the box against the seeded .demo_target.
+Missing file or missing keys fall back to DEFAULTS, which are repo-generic
+(logs at ./logs/app.log, git history from the current directory) so Beacon
+works on a stranger's repository with zero config. Local development pins
+the seeded demo target via the repo-root beacon.yml instead.
 """
 
 import copy
@@ -15,10 +17,10 @@ import os
 import yaml
 
 DEFAULTS: dict = {
-    "service": "demo-target",
-    "logs": {"adapter": "file", "path": "./.demo_target/logs/app.log"},
+    "service": "app",
+    "logs": {"adapter": "file", "path": "./logs/app.log"},
     "metrics": {"adapter": "stub"},
-    "repo": {"path": "./.demo_target", "diff_window": 5},
+    "repo": {"path": ".", "diff_window": 5},
     "budget": {"max_tool_calls": 15, "max_tokens": 60000},
 }
 

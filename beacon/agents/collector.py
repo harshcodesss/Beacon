@@ -9,6 +9,7 @@ degrading gracefully — patches shrink before clusters are dropped.
 """
 
 import json
+import os
 import re
 
 from drain3 import TemplateMiner
@@ -18,7 +19,9 @@ from beacon.adapters.logs_file import read_recent_logs
 from beacon.config import load_config
 from beacon.graph.state import BeaconState
 
-INCIDENT_MINUTES = 30
+# window override lets callers (e.g. the GitHub Action's window_minutes input)
+# widen the incident window without a config file
+INCIDENT_MINUTES = int(os.environ.get("BEACON_WINDOW_MINUTES", "30"))
 BASELINE_MINUTES = 120   # the window immediately before the incident window
 MAX_PACK_TOKENS = 8000
 MAX_CLUSTERS = 15
