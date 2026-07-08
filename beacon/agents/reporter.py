@@ -23,7 +23,15 @@ logger = logging.getLogger(__name__)
 
 # some fluency for prose, but grounded
 MODEL = resolve_model("REPORTER")
-llm = build_chat_model(MODEL, temperature=0.3)
+
+# built lazily on first use: importing must never require an API key
+llm = None
+
+
+def _ensure_llm() -> None:
+    global llm
+    if llm is None:
+        llm = build_chat_model(MODEL, temperature=0.3)
 
 # citation shapes the gate recognises
 _LOG_CITE = re.compile(r"[\w.-]+\.log:\d+")   # e.g. app.log:1042
@@ -120,6 +128,7 @@ def _as_text(content) -> str:
 
 
 def write_report(state: BeaconState) -> dict:
+    _ensure_llm()
     prompt = _report_prompt(
         verdicts=state.get("verdicts") or [],
         hypotheses=state.get("hypotheses") or [],

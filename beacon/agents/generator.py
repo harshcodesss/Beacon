@@ -24,7 +24,19 @@ logger = logging.getLogger(__name__)
 MAX_HYPOTHESES = 5
 
 MODEL = resolve_model("GENERATOR")
-llm = build_chat_model(MODEL, temperature=0.4)
+
+# built lazily on first use: importing this module (and the compiled graph)
+# must never require an API key — newer provider SDKs validate the key at
+# construction, and only invoke-time actually needs one
+llm = None
+_structured_llm = None
+
+
+def _ensure_llm() -> None:
+    global llm, _structured_llm
+    if _structured_llm is None:
+        llm = build_chat_model(MODEL, temperature=0.4)
+        _structured_llm = llm.with_structured_output(HypothesisList)
 
 
 class Hypothesis(BaseModel):
@@ -47,10 +59,6 @@ class HypothesisList(BaseModel):
     """Wrapper so structured output can return a list (Gemini structured
     output binds to a single object, not a bare array)."""
     hypotheses: list[Hypothesis]
-
-
-# .with_structured_output makes the model return a validated HypothesisList
-_structured_llm = llm.with_structured_output(HypothesisList)
 
 
 SYSTEM_PROMPT = """\
@@ -98,6 +106,7 @@ def build_prompt(context_pack: dict) -> str:
 
 def generate_hypotheses(state: BeaconState) -> dict:
     """Generate root-cause hypotheses for the given state."""
+    _ensure_llm()
     pack = state.get("context_pack") or {}
     prompt = build_prompt(pack)
 

@@ -28,7 +28,17 @@ DEFAULT_MAX_TOOL_CALLS = 15
 
 # temperature low: investigation rewards precision, not creativity
 MODEL = resolve_model("INVESTIGATOR")
-llm = build_chat_model(MODEL, temperature=0.1, tools=TOOLS)
+
+# built lazily on first use: importing must never require an API key
+llm = None
+_verdict_llm = None
+
+
+def _ensure_llm() -> None:
+    global llm, _verdict_llm
+    if _verdict_llm is None:
+        llm = build_chat_model(MODEL, temperature=0.1, tools=TOOLS)
+        _verdict_llm = llm.with_structured_output(Verdict)
 
 
 class Verdict(BaseModel):
@@ -40,10 +50,6 @@ class Verdict(BaseModel):
         "'4c32d7f payments.py' — only things you actually observed via tools"
     )
     reasoning: str = Field(description="2-3 sentences, no more")
-
-
-# built once, after Verdict is defined
-_verdict_llm = llm.with_structured_output(Verdict)
 
 
 SYSTEM_PROMPT = """\
@@ -88,6 +94,7 @@ def _hypothesis_prompt(hyp: dict, context_pack: dict) -> str:
 
 
 def investigate(state: BeaconState) -> dict:
+    _ensure_llm()
     hypotheses = state.get("hypotheses") or []
     context_pack = state.get("context_pack") or {}
     budget = dict(state.get("budget") or {})
