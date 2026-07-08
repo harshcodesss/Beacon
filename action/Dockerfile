@@ -1,12 +1,26 @@
+# Built with the repository root as context (action.yml lives at the repo
+# root), so the real agent core ships inside the image. git is required by
+# the collector/investigator to read the triaged repo's recent commits.
 FROM python:3.11-slim
 
-# The entrypoint uses only the standard library so the action starts fast
-# and works in air-gapped runners. When the beacon agent-core package is
-# published, installing it here upgrades the action from the bundled mock
-# to real triage with no other changes:
-#   RUN pip install --no-cache-dir beacon-agent
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/beacon-action
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
+
+# agent-core runtime deps only (no dev/test extras)
+RUN pip install --no-cache-dir \
+    "langgraph>=0.2" \
+    "langchain-google-genai>=2.0" \
+    "drain3>=0.9.11" \
+    "PyYAML>=6.0" \
+    "python-dotenv>=1.0"
 
 WORKDIR /beacon-action
-COPY entrypoint.py mock_beacon.py ./
+COPY beacon/ ./beacon/
+COPY action/entrypoint.py action/mock_beacon.py ./
 
 ENTRYPOINT ["python", "/beacon-action/entrypoint.py"]

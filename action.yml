@@ -1,0 +1,70 @@
+name: "Beacon incident triage"
+description: >-
+  Runs Beacon's root-cause triage over your logs and recent commits when a
+  deploy fails, comments the evidence-cited report on the triggering PR or
+  issue, and (optionally) posts it to your Beacon dashboard.
+author: "Harsh Rathi"
+
+branding:
+  icon: "alert-triangle"
+  color: "yellow"
+
+inputs:
+  gemini_api_key:
+    description: >-
+      Your Gemini API key (store as a repository secret). Powers the real
+      agent pipeline. When omitted, the action falls back to a bundled mock
+      that produces a canned demo report.
+    required: false
+    default: ""
+  gemini_model:
+    description: >-
+      Gemini model id for the whole pipeline (see README for measured
+      model-efficiency comparisons). Per-agent tiering is available via
+      GENERATOR_MODEL / INVESTIGATOR_MODEL / REPORTER_MODEL step env vars.
+    required: false
+    default: "gemini-3.1-flash-lite"
+  log_path:
+    description: "Path to the log file to triage, relative to the workspace."
+    required: false
+    default: "./logs/app.log"
+  window_minutes:
+    description: "How many minutes of trailing logs to hand to the agent."
+    required: false
+    default: "30"
+  beacon_api_key:
+    description: >-
+      Project API key from Beacon settings (starts with beacon_sk_). Optional:
+      without it the report is still generated and commented, just not
+      delivered to the Beacon dashboard.
+    required: false
+    default: ""
+  api_url:
+    description: "Base URL of the Beacon API."
+    required: false
+    default: "https://api.beacon.dev"
+  github_token:
+    description: >-
+      Token used to comment the report on the triggering PR/issue.
+      Defaults to the workflow token; pass an empty string to disable
+      commenting.
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  incident_id:
+    description: "ID of the incident created in Beacon (when delivered)."
+  report_path:
+    description: "Path to the rendered markdown report inside the workspace."
+
+runs:
+  using: "docker"
+  image: "action/Dockerfile"
+  env:
+    GEMINI_API_KEY: ${{ inputs.gemini_api_key }}
+    GEMINI_MODEL: ${{ inputs.gemini_model }}
+    BEACON_API_KEY: ${{ inputs.beacon_api_key }}
+    BEACON_LOG_PATH: ${{ inputs.log_path }}
+    BEACON_WINDOW_MINUTES: ${{ inputs.window_minutes }}
+    BEACON_API_URL: ${{ inputs.api_url }}
+    GITHUB_TOKEN: ${{ inputs.github_token }}

@@ -1,0 +1,19 @@
+# Backend/action images build with the repo root as context so beacon/ can
+# ship inside them — keep everything irrelevant out of that context.
+.git
+.github
+.venv
+**/.venv
+**/__pycache__
+**/.pytest_cache
+node_modules
+frontend
+.demo_target
+docs
+tests
+postgres-data
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
