@@ -100,19 +100,21 @@ function AgentCard({ agent, onOpen, reduced }: { agent: Agent; onOpen: () => voi
       layoutId={reduced ? undefined : `agent-panel-${agent.id}`}
       onClick={onOpen}
       transition={{ type: "spring", stiffness: 240, damping: 30 }}
-      className="group flex h-full flex-col items-start gap-4 rounded-2xl border border-edge bg-white p-6 text-left shadow-sm transition-shadow duration-300 hover:shadow-md"
+      className="group flex h-full flex-col items-start gap-4 rounded-2xl border border-edge bg-white p-6 text-left shadow-sm transition-colors duration-300 hover:border-zinc-900 hover:bg-ink hover:shadow-md"
     >
-      <Avatar className="h-24 w-24 text-zinc-800" />
+      <Avatar className="h-24 w-24 text-zinc-800 transition-colors duration-300 group-hover:text-white" />
       <span>
-        <span className="block text-2xl font-extrabold tracking-tight text-zinc-900">
+        <span className="block text-2xl font-extrabold tracking-tight text-zinc-900 transition-colors duration-300 group-hover:text-white">
           {agent.name}
         </span>
         <span className="mt-1 block font-mono text-[11px] uppercase tracking-[0.22em] text-beacon">
           {agent.role}
         </span>
       </span>
-      <span className="block text-sm leading-relaxed text-zinc-600">{agent.tagline}</span>
-      <span className="mt-auto inline-flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-[13px] font-semibold text-white transition-colors duration-300 group-hover:bg-zinc-700">
+      <span className="block text-sm leading-relaxed text-zinc-600 transition-colors duration-300 group-hover:text-zinc-300">
+        {agent.tagline}
+      </span>
+      <span className="mt-auto inline-flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-[13px] font-semibold text-white transition-colors duration-300 group-hover:bg-white group-hover:text-ink">
         Watch it work
         <span aria-hidden className="transition-transform duration-300 group-hover:translate-x-1">→</span>
       </span>
