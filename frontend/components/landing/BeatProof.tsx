@@ -6,14 +6,14 @@ import { useRef } from "react";
 import { Reveal, Stamp } from "@/components/landing/scroll";
 
 const EVIDENCE = [
-  { cite: "app.log:2093", text: "pydantic.ValidationError — DB_URL field required" },
-  { cite: "api/config.py:14", text: "Settings.DB_URL has no default — required at boot" },
-  { cite: "commit 8d1f42c", text: "deploy.yaml — DB_URL removed from the env block" },
+  { cite: "app.log:2093", text: "pydantic.ValidationError: DB_URL field required" },
+  { cite: "api/config.py:14", text: "Settings.DB_URL has no default, required at boot" },
+  { cite: "commit 8d1f42c", text: "deploy.yaml: DB_URL removed from the env block" },
 ];
 
 const RULED_OUT = [
-  "Connection-pool exhaustion — the pool never opened; refused before the first query.",
-  "Stale image cache on node-3 — the running image digest matches the built artifact.",
+  "Connection-pool exhaustion: the pool never opened, refused before the first query.",
+  "Stale image cache on node-3: the running image digest matches the built artifact.",
 ];
 
 const ROOT_CAUSE =
@@ -47,7 +47,7 @@ function Intro() {
         You wake up to <span className="text-beacon">the answer</span>, not the alert.
       </h2>
       <p className="max-w-md text-base leading-relaxed text-zinc-600">
-        Every claim in the report cites the line that proves it — and a deterministic gate
+        Every claim in the report cites the line that proves it. A deterministic gate
         drops any citation it can&apos;t verify against the evidence Beacon actually gathered.
         The model writes the prose; code guarantees the evidence.
       </p>
@@ -139,7 +139,7 @@ function ReportCard({ progress }: { progress: MotionValue<number> }) {
       <Reveal progress={progress} at={0.46}>
         <div className="flex items-center gap-2 border-t border-edge bg-surface px-6 py-3 font-mono text-[11px] uppercase tracking-[0.16em] text-emerald-700">
           <span aria-hidden>◆</span>
-          citation gate —{" "}
+          citation gate ·{" "}
           <motion.span className="tabular-nums">{verifiedRounded}</motion.span>
           <span>/ {EVIDENCE.length} citations verified</span>
         </div>
@@ -197,7 +197,7 @@ function StaticReport() {
         </div>
       </div>
       <div className="border-t border-edge bg-surface px-6 py-3 font-mono text-[11px] uppercase tracking-[0.16em] text-emerald-700">
-        ◆ citation gate — {EVIDENCE.length}/{EVIDENCE.length} citations verified
+        ◆ citation gate · {EVIDENCE.length}/{EVIDENCE.length} citations verified
       </div>
     </div>
   );

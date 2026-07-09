@@ -12,7 +12,7 @@ const LOG_LINES = [
   "02:59:02 INFO  api.boot     python 3.11 · uvicorn 0.30 · workers=4",
   "02:59:04 INFO  api.boot     loading settings from environment",
   "02:59:05 INFO  api.db       opening pool postgres:5432 (size=10)",
-  "02:59:07 WARN  api.db       acquire retry 1/3 — connection refused",
+  "02:59:07 WARN  api.db       acquire retry 1/3: connection refused",
   "02:59:09 INFO  redis        connected · latency 2.1ms",
   "02:59:31 INFO  k8s.rollout  replica 1/3 ready",
   "03:00:02 INFO  worker       rq worker online · queue=triage",
@@ -65,7 +65,7 @@ function NoiseField() {
 }
 
 export const SIGNAL_LINE =
-  "pydantic.ValidationError: 1 validation error for Settings — DB_URL: field required";
+  "pydantic.ValidationError: 1 validation error for Settings · DB_URL: field required";
 
 export function BeatNoise() {
   const ref = useRef<HTMLElement>(null);

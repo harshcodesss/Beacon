@@ -1,5 +1,6 @@
 "use client";
 
+import { AgentsSection } from "@/components/landing/AgentsSection";
 import { BeatInvestigate } from "@/components/landing/BeatInvestigate";
 import { BeatNoise } from "@/components/landing/BeatNoise";
 import { BeatProof } from "@/components/landing/BeatProof";
@@ -21,6 +22,7 @@ export function Landing() {
         <BeatInvestigate />
         <BeatProof />
         <HowItRuns />
+        <AgentsSection />
       </main>
       <LandingFooter />
     </div>

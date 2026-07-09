@@ -17,21 +17,21 @@ const HYPOTHESES: {
 }[] = [
   {
     id: "h1",
-    title: "api/config.py — DB_URL missing from the deploy environment",
+    title: "api/config.py: DB_URL missing from the deploy environment",
     prior: "prior 70%",
     verdict: "accept",
     confidence: 0.92,
   },
   {
     id: "h2",
-    title: "postgres — connection pool exhaustion during rollout",
+    title: "postgres: connection pool exhaustion during rollout",
     prior: "prior 20%",
     verdict: "reject",
     confidence: 0.31,
   },
   {
     id: "h3",
-    title: "deploy pipeline — stale image cache on node-3",
+    title: "deploy pipeline: stale image cache on node-3",
     prior: "prior 10%",
     verdict: "reject",
     confidence: 0.12,
@@ -108,7 +108,7 @@ function IncidentCard({ progress }: { progress: MotionValue<number> }) {
       ))}
       <Reveal progress={progress} at={0.85}>
         <div className="border-t border-edge bg-surface px-5 py-3 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-          7 tool calls · 18,342 tokens · 4s wall clock — budget respected
+          7 tool calls · 18,342 tokens · 4s wall clock · budget respected
         </div>
       </Reveal>
     </div>
@@ -155,7 +155,7 @@ function StaticCard() {
         </div>
       ))}
       <div className="border-t border-edge bg-surface px-5 py-3 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-        7 tool calls · 18,342 tokens · 4s wall clock — budget respected
+        7 tool calls · 18,342 tokens · 4s wall clock · budget respected
       </div>
     </div>
   );
@@ -171,7 +171,7 @@ function Intro() {
         Three hypotheses. Real tool calls. <span className="text-beacon">One verdict.</span>
       </h2>
       <p className="max-w-md text-base leading-relaxed text-zinc-600">
-        Beacon doesn&apos;t summarize your logs — it argues with them. Every hypothesis is
+        Beacon doesn&apos;t summarize your logs. It argues with them. Every hypothesis is
         confirmed or refuted with evidence it fetched itself, and every claim in the report
         cites the line that proves it.
       </p>
