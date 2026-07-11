@@ -4,7 +4,6 @@ import { motion, useReducedMotion } from "framer-motion";
 import { useState } from "react";
 
 import type { LandingAuth } from "@/components/landing/useLandingAuth";
-import { Highlighter } from "@/components/ui/highlighter";
 import { NoiseTexture } from "@/components/ui/noise-texture";
 
 const lineReveal = (delay: number) => ({
@@ -78,19 +77,8 @@ export function Hero({ auth }: { auth: LandingAuth }) {
           {...reveal(0.45)}
           className="mt-6 max-w-2xl text-lg leading-relaxed text-ink/75 sm:text-xl"
         >
-          <span className="sm:block">
-            The moment something fails, Beacon{" "}
-            <Highlighter action="highlight" color="rgba(255,255,255,0.85)" animate={false} isView>
-              starts investigating
-            </Highlighter>
-            .
-          </span>{" "}
-          <span className="sm:block">
-            <Highlighter action="underline" color="#262626" strokeWidth={2} animate={false} isView>
-              Root cause in minutes
-            </Highlighter>
-            , with evidence behind every claim.
-          </span>
+          <span className="sm:block">The moment something fails, Beacon starts investigating.</span>{" "}
+          <span className="sm:block">Root cause in minutes, with evidence behind every claim.</span>
         </motion.p>
 
         <motion.div {...reveal(0.6)} className="mt-10 flex flex-wrap items-center justify-center gap-5">
