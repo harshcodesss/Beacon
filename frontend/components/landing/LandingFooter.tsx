@@ -56,18 +56,18 @@ function StatusPill() {
 export function LandingFooter() {
   return (
     <footer className="border-t border-edge bg-white">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-5 px-5 py-10 sm:px-8">
-        <div className="flex items-center gap-2.5">
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-beacon/15 text-sm text-beacon">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-6 sm:px-8">
+        <div className="flex items-center gap-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-beacon/15 text-xs text-beacon">
             ⌁
           </span>
-          <span className="text-sm font-semibold text-zinc-900">Beacon</span>
-          <span className="text-sm text-zinc-400">·</span>
+          <span className="text-[13px] font-semibold text-zinc-900">Beacon</span>
+          <span className="text-[13px] text-zinc-400">·</span>
           <a
             href="https://github.com/harshcodesss"
             target="_blank"
             rel="noreferrer"
-            className="text-sm text-zinc-500 transition-colors hover:text-zinc-900"
+            className="text-[13px] text-zinc-500 transition-colors hover:text-zinc-900"
           >
             Built by Harsh Rathi
           </a>
@@ -77,7 +77,7 @@ export function LandingFooter() {
             href="https://github.com/harshcodesss/Beacon"
             target="_blank"
             rel="noreferrer"
-            className="text-sm text-zinc-500 transition-colors hover:text-zinc-900"
+            className="text-[13px] text-zinc-500 transition-colors hover:text-zinc-900"
           >
             GitHub
           </a>

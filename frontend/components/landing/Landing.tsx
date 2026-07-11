@@ -6,9 +6,11 @@ import { BeatNoise } from "@/components/landing/BeatNoise";
 import { BeatProof } from "@/components/landing/BeatProof";
 import { Hero } from "@/components/landing/Hero";
 import { HowItRuns } from "@/components/landing/HowItRuns";
+import { LandingCTA } from "@/components/landing/LandingCTA";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 import { LandingNav } from "@/components/landing/LandingNav";
 import { useLandingAuth } from "@/components/landing/useLandingAuth";
+import { WorkflowSection } from "@/components/landing/WorkflowSection";
 
 export function Landing() {
   const auth = useLandingAuth();
@@ -23,6 +25,8 @@ export function Landing() {
         <BeatProof />
         <HowItRuns />
         <AgentsSection />
+        <WorkflowSection />
+        <LandingCTA onSignIn={auth.signInPrimary} />
       </main>
       <LandingFooter />
     </div>
