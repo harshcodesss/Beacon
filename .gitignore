@@ -39,3 +39,4 @@ beacon/eval/ground_truth/
 
 # raw landing assets (processed copies live in frontend/public/hero/)
 frontend/hero-section-content/
+.superpowers/
