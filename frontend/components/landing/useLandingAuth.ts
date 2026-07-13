@@ -7,7 +7,7 @@ export interface LandingAuth {
   /** null while the provider list is loading. */
   github: boolean | null;
   dev: boolean;
-  /** Best available sign-in: GitHub when configured, dev demo otherwise. */
+  /** All landing CTAs route to the login page, where the 30-day choice lives. */
   signInPrimary: () => void;
   signInDev: (email: string) => void;
 }
@@ -26,10 +26,10 @@ export function useLandingAuth(): LandingAuth {
     github,
     dev,
     signInPrimary: () => {
-      if (providers?.github) signIn("github", { callbackUrl: "/home" });
-      else if (providers?.dev) signIn("dev", { email: "demo@beacon.dev", callbackUrl: "/home" });
-      else signIn(undefined, { callbackUrl: "/home" });
+      window.location.assign("/login");
     },
-    signInDev: (email: string) => signIn("dev", { email, callbackUrl: "/home" }),
+    // The hero's quick dev form has no checkbox: session-length sign-in.
+    signInDev: (email: string) =>
+      signIn("dev", { email, remember: "0", callbackUrl: "/home" }),
   };
 }

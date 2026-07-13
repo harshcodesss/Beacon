@@ -1,7 +1,6 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { useState } from "react";
 
 import type { LandingAuth } from "@/components/landing/useLandingAuth";
 import { NoiseTexture } from "@/components/ui/noise-texture";
@@ -45,7 +44,6 @@ function FogBank({ reduced }: { reduced: boolean }) {
 
 export function Hero({ auth }: { auth: LandingAuth }) {
   const reduced = useReducedMotion() ?? false;
-  const [devEmail, setDevEmail] = useState("demo@beacon.dev");
 
   const reveal = (delay: number) => (reduced ? {} : lineReveal(delay));
 
@@ -105,31 +103,6 @@ export function Hero({ auth }: { auth: LandingAuth }) {
           Evidence-cited · budget-capped · every claim verified
         </motion.p>
 
-        {auth.dev ? (
-          <motion.form
-            {...reveal(0.82)}
-            className="mt-5 flex items-center gap-2"
-            onSubmit={(event) => {
-              event.preventDefault();
-              auth.signInDev(devEmail);
-            }}
-          >
-            <input
-              type="email"
-              required
-              value={devEmail}
-              onChange={(event) => setDevEmail(event.target.value)}
-              aria-label="Dev sign-in email"
-              className="h-8 w-48 rounded-full border border-ink/20 bg-white/80 px-3 font-mono text-[11px] text-ink placeholder-zinc-400 outline-none focus:border-ink"
-            />
-            <button
-              type="submit"
-              className="h-8 rounded-full border border-ink/20 bg-white/80 px-3 font-mono text-[11px] uppercase tracking-wider text-ink/70 transition-colors hover:border-ink hover:text-ink"
-            >
-              dev →
-            </button>
-          </motion.form>
-        ) : null}
       </div>
 
       <FogBank reduced={reduced} />
