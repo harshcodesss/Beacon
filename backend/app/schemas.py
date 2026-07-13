@@ -16,6 +16,17 @@ class OAuthCallbackIn(BaseModel):
     # Dev-mode sign-in (AUTH_DEV_MODE=true only): bypasses GitHub for local demos.
     dev_email: str | None = None
     dev_name: str | None = None
+    # Keep me signed in for 30 days; otherwise the session dies after
+    # refresh_idle_hours of inactivity.
+    remember: bool = False
+
+
+class RefreshIn(BaseModel):
+    refresh_token: str
+
+
+class LogoutIn(BaseModel):
+    refresh_token: str
 
 
 class UserOut(ORMModel):
@@ -36,7 +47,18 @@ class MeUpdate(BaseModel):
 class TokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    # Rotates on every /auth/refresh; present the newest one next time.
+    refresh_token: str
+    # Access-token lifetime in seconds, so the client knows when to refresh.
+    expires_in: int
     user: UserOut
+
+
+class RefreshOut(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    refresh_token: str
+    expires_in: int
 
 
 # ---- projects ----

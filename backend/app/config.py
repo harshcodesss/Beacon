@@ -14,7 +14,11 @@ class Settings(BaseSettings):
 
     jwt_secret: str = "change-me-generate-a-real-secret"
     jwt_algorithm: str = "HS256"
-    jwt_expires_minutes: int = 60 * 24 * 7
+    # Access tokens are short-lived; the frontend swaps them silently via
+    # /auth/refresh, and the session row enforces the real lifetimes below.
+    jwt_expires_minutes: int = 15
+    refresh_idle_hours: int = 24
+    refresh_absolute_days: int = 30
 
     # Enables password-less dev sign-in for local demos. Never enable in production.
     auth_dev_mode: bool = False

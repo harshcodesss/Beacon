@@ -8,16 +8,27 @@ import jwt
 from app.config import settings
 
 API_KEY_PREFIX = "beacon_sk_"
+REFRESH_TOKEN_PREFIX = "beacon_rt_"
 
 
-def create_access_token(user_id: uuid.UUID) -> str:
+def create_access_token(user_id: uuid.UUID, session_id: uuid.UUID | None = None) -> str:
     now = datetime.now(UTC)
-    payload = {
+    payload: dict = {
         "sub": str(user_id),
         "iat": now,
         "exp": now + timedelta(minutes=settings.jwt_expires_minutes),
     }
+    if session_id is not None:
+        payload["sid"] = str(session_id)
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+
+
+def generate_refresh_token() -> str:
+    return REFRESH_TOKEN_PREFIX + secrets.token_urlsafe(32)
+
+
+def hash_refresh_token(raw_token: str) -> str:
+    return hashlib.sha256(raw_token.encode()).hexdigest()
 
 
 def decode_access_token(token: str) -> str:
