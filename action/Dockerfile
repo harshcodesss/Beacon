@@ -1,7 +1,12 @@
 # Built with the repository root as context (action.yml lives at the repo
 # root), so the real agent core ships inside the image. git is required by
 # the collector/investigator to read the triaged repo's recent commits.
-FROM python:3.11-slim
+#
+# Base image comes from AWS's ECR public mirror, not Docker Hub: GitHub-hosted
+# runners share IP pools that Docker Hub anonymously rate-limits, which fails
+# the action's on-run image build. The mirror serves the identical image with
+# no such limit and no auth.
+FROM public.ecr.aws/docker/library/python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
