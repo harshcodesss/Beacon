@@ -120,6 +120,36 @@ export interface ApiKeyMeta {
   last_used_at: string | null;
 }
 
+export interface ActivityDay {
+  date: string;
+  total: number;
+  failed: number;
+}
+export interface ActivitySeries {
+  days: ActivityDay[];
+}
+
+export interface IncidentCounts {
+  total: number;
+  done: number;
+  failed: number;
+}
+// Mirrors the backend ProjectHealth, which subclasses ProjectWithStats so the
+// pre-existing incident_count / recent_incidents / accuracy fields remain.
+export interface ProjectHealth extends ProjectWithStats {
+  last_runs: IncidentStatus[];
+  incident_counts: IncidentCounts;
+  last_incident_at: string | null;
+}
+
+export interface SessionRow {
+  id: string;
+  remember: boolean;
+  created_at: string;
+  last_used_at: string;
+  current: boolean;
+}
+
 export interface ApiKeyCreated {
   id: string;
   api_key: string;

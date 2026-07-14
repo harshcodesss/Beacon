@@ -18,7 +18,11 @@ const config: Config = {
         beacon: {
           DEFAULT: "#ff7f11",
           dim: "#c25f00",
+          tint: "#fff3e8",
         },
+        ok: { DEFAULT: "#22a06b", ink: "#1d7a55", tint: "#e6f6ef" },
+        danger: { DEFAULT: "#e5484d", ink: "#c0392b", tint: "#fdeaea" },
+        warn: { DEFAULT: "#f5a623", ink: "#9a6b00", tint: "#fdf3e0" },
       },
       fontFamily: {
         sans: [
