@@ -62,12 +62,15 @@ Then walk the demo path:
 
 1. Open <http://localhost:3000> and use **Dev sign-in** (enabled by
    `AUTH_DEV_MODE=true`; any email works, no GitHub account needed).
-2. You land on **Home** with a seeded demo project: finished incidents,
-   accuracy stats, and one failed run, so no screen is ever empty.
+2. You land on **Home** with a seeded demo project: triage and accuracy stat
+   tiles, per-project run health, and recent incidents, so no screen is ever
+   empty.
 3. Under **Projects**, create a project, open it, then **Trigger incident**.
 4. Watch the incident page poll live from *Queued* to *Running* to *Done*. The
-   report renders with verdicts (accept/reject badges, confidence bars, evidence
-   chips) and the hypothesis set the agent worked from.
+   report renders as a readable document: the verdict headline with a confidence
+   bar, cited evidence lines, what was ruled out and why, expandable hypotheses
+   with their accept/reject checks, and the tool-call and token budget the run
+   actually used.
 
 ![Home](.github/assets/home.png)
 
