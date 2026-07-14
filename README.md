@@ -3,22 +3,43 @@
 **AI incident triage for on-call engineers.** When a deploy fails at 3 AM,
 Beacon reads the logs, metrics, and recent commits, investigates competing
 root-cause hypotheses with real tool calls, and hands you an evidence-cited
-report — before you have opened a terminal.
+report before you have opened a terminal.
 
 ![Beacon landing page](.github/assets/landing.png)
 
-## How it works
+## The agentic workflow
 
-1. **Collect** — clusters the trailing log window, flags brand-new error
-   templates, and pulls recent deploy diffs; ~50K lines compressed to signal.
-2. **Investigate** — generates competing root-cause hypotheses, then verifies
-   each with real tool calls (`search_logs`, `read_diff`, `get_metric`) under
-   a hard per-incident budget (tool calls and tokens both capped).
-3. **Report** — delivers an evidence-cited report: root cause, confidence,
-   what was ruled out and why, with every citation deterministically verified.
+Beacon runs a four-agent LangGraph pipeline. It is a single linear pass,
+`START -> Collector -> Hypothesis Generator -> Investigator -> Reporter -> END`,
+and the only loop in the whole system lives inside the Investigator node, not
+in the graph. Each agent writes one slice of shared state and hands off to the
+next.
 
-Reports land in the dashboard, and optionally in your inbox and on the
-failing pull request via the [GitHub Action](INSTALL.md).
+![Beacon agentic workflow](.github/assets/agentic-workflow.png)
+
+1. **Collector** turns raw signal into a bounded context pack. It joins
+   multiline log entries, clusters the trailing window with drain3, flags
+   brand-new error templates, computes an error rate against a baseline window,
+   pulls recent deploy diffs, then truncates everything to a token budget
+   (about 8K). Roughly 50K lines of logs compress down to signal.
+2. **Hypothesis Generator** makes one structured LLM call over the context pack
+   and emits a ranked `HypothesisList`. Post-processing backfills blank ids,
+   sorts by prior confidence, and caps the set at five so the Investigator has a
+   focused agenda.
+3. **Investigator** works the hypotheses one at a time. It reads the evidence so
+   far and calls real tools (`search_logs`, `read_diff`, `get_metric`) in a
+   loop until it can stamp a verdict (accept, reject, or inconclusive) with
+   citations, confidence, and reasoning. A hard per-incident budget caps both
+   tool calls and tokens.
+4. **Reporter** generates the markdown report, then runs it through an
+   anti-hallucination citation gate. Every `app.log:N` reference and commit hash
+   in the draft is checked against a pool of real citations gathered during the
+   run. Anything not in the pool is tagged `[unverified]` and counted in an
+   audit footer, so a confident-sounding but unsupported claim cannot slip
+   through.
+
+Reports land in the dashboard, and optionally in your inbox and on the failing
+pull request via the [GitHub Action](INSTALL.md).
 
 ![Incident report](.github/assets/incident-report.png)
 
@@ -41,47 +62,47 @@ Then walk the demo path:
 
 1. Open <http://localhost:3000> and use **Dev sign-in** (enabled by
    `AUTH_DEV_MODE=true`; any email works, no GitHub account needed).
-2. You land on **Home** with a seeded demo project — finished incidents,
+2. You land on **Home** with a seeded demo project: finished incidents,
    accuracy stats, and one failed run, so no screen is ever empty.
 3. Under **Projects**, create a project, open it, then **Trigger incident**.
-4. Watch the incident page poll live from *Queued* → *Running* → *Done*; the
-   report renders with verdicts (accept/reject badges, confidence bars,
-   evidence chips) and the hypothesis set the agent worked from.
+4. Watch the incident page poll live from *Queued* to *Running* to *Done*. The
+   report renders with verdicts (accept/reject badges, confidence bars, evidence
+   chips) and the hypothesis set the agent worked from.
 
 ![Home](.github/assets/home.png)
 
-To sign in with GitHub instead, create a GitHub OAuth app (Settings →
-Developer settings → OAuth Apps) with callback URL
+To sign in with GitHub instead, create a GitHub OAuth app (Settings ->
+Developer settings -> OAuth Apps) with callback URL
 `http://localhost:3000/api/auth/callback/github`, set
 `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` in `.env`, and set
 `AUTH_DEV_MODE=false`.
 
 ## GitHub Action
 
-Beacon can triage automatically when your deploy workflow fails and comment
-the report on the triggering pull request. **You bring your own Gemini API key
-and pick the model.** Install guide with a copy-paste workflow:
+Beacon can triage automatically when your deploy workflow fails and comment the
+report on the triggering pull request. **You bring your own Gemini API key and
+pick the model.** Install guide with a copy-paste workflow:
 **[INSTALL.md](INSTALL.md)**.
 
 ## Benchmark
 
 Every accuracy claim comes from the fault-injection harness (`beacon/eval/`):
-8 scenarios that each break a demo service in one known way — missing env var,
-dependency timeout/outage, misconfigured timeout, **a planted guilty commit** —
-and score whether Beacon's accepted root cause matches the ground truth. Two
-scenarios are held out and never used while iterating prompts.
+8 scenarios that each break a demo service in one known way, including a missing
+env var, a dependency timeout or outage, a misconfigured timeout, and a planted
+guilty commit. Each run scores whether Beacon's accepted root cause matches the
+ground truth. Two scenarios are held out and never used while iterating prompts.
 
-Latest run (all agents on `gemini-3.1-flash-lite` — the smallest model, so a
+Latest run (all agents on `gemini-3.1-flash-lite`, the smallest model, so a
 floor): **top-1 62% (5/8)**, including correct commit-level attribution on the
-planted-commit scenario. Notably, **every miss was an abstention** — when
-uncertain the pipeline accepted no hypothesis rather than accuse a wrong cause;
-it never produced a false root cause across the suite. Citation validity was
+planted-commit scenario. Notably, **every miss was an abstention**. When
+uncertain the pipeline accepted no hypothesis rather than accuse a wrong cause,
+and it never produced a false root cause across the suite. Citation validity was
 100% on every completed run.
 
 ## Model efficiency
 
 **Bring your own LLM.** The pipeline runs on any LangChain-supported provider
-via a provider-prefixed model string — set `BEACON_MODEL` and the matching
+via a provider-prefixed model string. Set `BEACON_MODEL` and the matching
 provider key:
 
 ```bash
@@ -90,27 +111,28 @@ BEACON_MODEL=openai:gpt-4o                         # + OPENAI_API_KEY
 BEACON_MODEL=anthropic:claude-sonnet-5             # + ANTHROPIC_API_KEY
 ```
 
-Model choice is a cost/quality knob — the Investigator makes ~85–90% of the
-calls, so the cheapest lever is running a strong model on the two single-shot
-calls (Generator, Reporter) and a lite model on the call-heavy Investigator
-loop. Set that split with the per-agent overrides (`BEACON_GENERATOR_MODEL` /
-`BEACON_INVESTIGATOR_MODEL` / `BEACON_REPORTER_MODEL`).
+Model choice is a cost and quality knob. The Investigator makes about 85 to 90%
+of the calls, so the cheapest lever is running a strong model on the two
+single-shot calls (Generator, Reporter) and a lite model on the call-heavy
+Investigator loop. Set that split with the per-agent overrides
+(`BEACON_GENERATOR_MODEL` / `BEACON_INVESTIGATOR_MODEL` /
+`BEACON_REPORTER_MODEL`).
 
 Measured on one frozen incident (a payment-timeout fault), instrumented per
-agent. **n=1 per config — directional, not statistical.**
+agent. **n=1 per config, so directional, not statistical.**
 
 | Config | Judge top-1 | LLM calls | Input tokens | Citation validity | Notes |
 | --- | --- | --- | --- | --- | --- |
-| **Mixed** — 3.5-flash gen+rep, 3.1-flash-lite investigator | ✅ correct | 20 | 117K | 100% | best quality-per-cost |
-| **All 3.1-flash-lite** | ❌ missed | 12 | 64K | 100% | cheapest; weaker hypotheses |
-| **All strong-flash** | — | — | — | — | 503-unavailable at test time* |
+| **Mixed**: 3.5-flash gen+rep, 3.1-flash-lite investigator | correct | 20 | 117K | 100% | best quality-per-cost |
+| **All 3.1-flash-lite** | missed | 12 | 64K | 100% | cheapest; weaker hypotheses |
+| **All strong-flash** | n/a | n/a | n/a | n/a | 503-unavailable at test time* |
 
 \* The newest strong models (`gemini-3.5-flash`, `gemini-3-flash-preview`)
 returned `503 UNAVAILABLE` under load across repeated attempts, while the lite
-model completed every run — a real availability argument for the mixed config.
-Two operational findings: (1) pinning triage to the newest model is a
+model completed every run. That is a real availability argument for the mixed
+config. Two operational findings: (1) pinning triage to the newest model is a
 reliability risk; (2) failed 503 retries still consume daily quota. Cost per
-triage is bounded by the tool-call budget (15 calls typical, ~28 max).
+triage is bounded by the tool-call budget (15 calls typical, about 28 max).
 
 Fuller methodology and the per-agent call/token breakdown live in
 [`docs/report_agentic.md`](docs/report_agentic.md).
@@ -132,19 +154,19 @@ Postgres ◄──────────────────────�
   └── POST /webhook/github  ◄──────────── GitHub Action (BYO Gemini key)
 ```
 
-- **Agent boundary** — the product shell integrates through one line:
+- **Agent boundary.** The product shell integrates through one line:
   `from beacon.graph.build import app as beacon_graph`. The `beacon/` package
   ships inside the backend and Action images; `backend/app/beacon_client.py`
   auto-detects it and `/healthz` reports `agent_core: "real"`. It falls back to
-  a mock with the identical `invoke()` contract when the package or a Gemini
-  key is absent, so a keyless demo still works.
-- **Auth** — NextAuth on the frontend; the backend verifies the GitHub
-  access token against the GitHub API and issues its own JWT. All queries are
+  a mock with the identical `invoke()` contract when the package or a Gemini key
+  is absent, so a keyless demo still works.
+- **Auth.** NextAuth on the frontend; the backend verifies the GitHub access
+  token against the GitHub API and issues its own JWT. All queries are
   user-scoped (missing and foreign resources are both 404).
-- **API keys** — `beacon_sk_` keys are stored SHA-256-hashed, shown once at
+- **API keys.** `beacon_sk_` keys are stored SHA-256-hashed, shown once at
   creation, and rate-limited per key on the webhook.
-- **Jobs** — RQ worker; a failed triage marks the incident *failed* and
-  stores the error with the incident, never crashing the worker.
+- **Jobs.** RQ worker; a failed triage marks the incident *failed* and stores
+  the error with the incident, never crashing the worker.
 
 ## Development
 
@@ -172,7 +194,7 @@ CI runs the same lint/test/build matrix on every pull request
 ## Repository layout
 
 ```
-beacon/     Agent core: 5-agent LangGraph pipeline (collector, generator,
+beacon/     Agent core: 4-agent LangGraph pipeline (collector, generator,
             investigator, reporter) + eval harness (judge). The only public
             entry point is beacon.graph.build.app
 backend/    FastAPI app, SQLAlchemy models, Alembic migrations, RQ jobs, tests
@@ -185,6 +207,6 @@ tests/      Agent-core test suite (pytest)
 
 ## Out of scope (v1)
 
-Billing, teams, Slack delivery, Loki/Prometheus adapters, auto-remediation,
+Billing, teams, Slack delivery, Loki and Prometheus adapters, auto-remediation,
 multi-user projects. Every decision is biased toward the demo path:
-sign in → create project → trigger incident → report appears.
+sign in, create project, trigger incident, report appears.
