@@ -129,6 +129,9 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, account, user }) {
       // GitHub sign-in: swap the GitHub access token for a Beacon session.
       if (account?.provider === "github" && account.access_token) {
+        // kept in the encrypted NextAuth JWT (server-side only, never exposed
+        // on the client Session) so /api/github/repos can list the user's repos
+        token.githubAccessToken = account.access_token;
         const auth = await exchangeWithBackend({
           access_token: account.access_token,
           remember: readRememberCookie(),
@@ -197,6 +200,7 @@ declare module "next-auth/jwt" {
     backendTokenExpires?: number;
     refreshToken?: string;
     userId?: string;
+    githubAccessToken?: string;
     error?: "SessionExpired";
   }
 }
