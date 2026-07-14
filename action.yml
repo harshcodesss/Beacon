@@ -68,7 +68,7 @@ outputs:
 
 runs:
   using: "docker"
-  image: "action/Dockerfile"
+  image: "Dockerfile"
   env:
     BEACON_MODEL: ${{ inputs.llm_model }}
     GEMINI_API_KEY: ${{ inputs.gemini_api_key }}

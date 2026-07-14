@@ -72,5 +72,8 @@ jobs:
       - name: Syntax-check action entrypoint
         run: python -m compileall action
       - name: Build action image
-        # repo root is the build context so the beacon/ agent core ships in it
-        run: docker build -f action/Dockerfile -t beacon-action .
+        # Mirror the real container-action build: context = the Dockerfile's
+        # own directory (repo root), which is where it must live so beacon/
+        # resolves. Passing an explicit root context here would have masked the
+        # bug that broke the action on real runners.
+        run: docker build -t beacon-action .

@@ -1,11 +1,14 @@
-# Built with the repository root as context (action.yml lives at the repo
-# root), so the real agent core ships inside the image. git is required by
-# the collector/investigator to read the triaged repo's recent commits.
+# Lives at the repo root on purpose: a container action builds with the
+# Dockerfile's own directory as the build context, so this must sit beside
+# beacon/ and action/ for the COPY lines below to resolve. (When it lived in
+# action/, the runner's context was action/ and `COPY beacon/` 404'd, even
+# though a root-context build passed locally and in CI.) The agent core ships
+# in the image; git is required by the collector/investigator to read the
+# triaged repo's recent commits.
 #
 # Base image comes from AWS's ECR public mirror, not Docker Hub: GitHub-hosted
-# runners share IP pools that Docker Hub anonymously rate-limits, which fails
-# the action's on-run image build. The mirror serves the identical image with
-# no such limit and no auth.
+# runners share IP pools that Docker Hub anonymously rate-limits. The mirror
+# serves the identical image with no such limit and no auth.
 FROM public.ecr.aws/docker/library/python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
