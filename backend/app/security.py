@@ -37,6 +37,12 @@ def decode_access_token(token: str) -> str:
     return payload["sub"]
 
 
+def decode_session_id(token: str) -> str | None:
+    """Return the session id (sid) carried by an access token, if present."""
+    payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+    return payload.get("sid")
+
+
 def generate_api_key() -> str:
     return API_KEY_PREFIX + secrets.token_urlsafe(32)
 
