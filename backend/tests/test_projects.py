@@ -1,4 +1,6 @@
+from app import jobs
 from app.security import API_KEY_PREFIX
+from tests.conftest import StubGraph
 
 
 def test_create_and_list_projects(client, signin, make_project):
@@ -76,3 +78,69 @@ def test_get_project_not_found(client, signin):
         client.get("/projects/00000000-0000-0000-0000-000000000000", headers=headers).status_code
         == 404
     )
+
+
+def test_projects_include_health_rollup(client, signin, make_project, enqueued):
+    headers = signin("h@test.com")
+    project = make_project(headers, name="svc")
+    for _ in range(2):
+        client.post(
+            f"/projects/{project['id']}/incidents", headers=headers, json={"trigger": "manual"}
+        )
+
+    resp = client.get("/projects", headers=headers)
+    assert resp.status_code == 200
+    row = next(p for p in resp.json() if p["id"] == project["id"])
+    assert row["incident_counts"]["total"] == 2
+    assert isinstance(row["last_runs"], list)
+    assert len(row["last_runs"]) <= 10
+
+
+def test_projects_health_reflects_failed_incidents(
+    client, signin, make_project, enqueued, monkeypatch
+):
+    headers = signin()
+    project = make_project(headers)
+    incident = client.post(
+        f"/projects/{project['id']}/incidents", headers=headers, json={"trigger": "manual"}
+    ).json()
+
+    monkeypatch.setattr(jobs, "beacon_graph", StubGraph(error=RuntimeError("agent exploded")))
+    jobs.run_triage(incident["id"])  # marks the incident failed
+
+    resp = client.get("/projects", headers=headers)
+    row = next(p for p in resp.json() if p["id"] == project["id"])
+    assert row["incident_counts"]["failed"] >= 1
+    assert "failed" in row["last_runs"]
+    assert row["last_incident_at"] is not None
+
+
+def test_projects_health_last_runs_capped_at_ten(client, signin, make_project, enqueued):
+    headers = signin()
+    project = make_project(headers)
+    for _ in range(13):
+        client.post(
+            f"/projects/{project['id']}/incidents", headers=headers, json={"trigger": "manual"}
+        )
+
+    resp = client.get("/projects", headers=headers)
+    row = next(p for p in resp.json() if p["id"] == project["id"])
+    assert row["incident_counts"]["total"] == 13
+    assert len(row["last_runs"]) == 10
+
+
+def test_projects_health_is_scoped_to_owner(client, signin, make_project, enqueued):
+    headers_a = signin("a-health@test.com")
+    headers_b = signin("b-health@test.com")
+    project_a = make_project(headers_a, name="a-health-proj")
+    project_b = make_project(headers_b, name="b-health-proj")
+
+    client.post(
+        f"/projects/{project_a['id']}/incidents", headers=headers_a, json={"trigger": "manual"}
+    )
+
+    resp_b = client.get("/projects", headers=headers_b)
+    row_b = next(p for p in resp_b.json() if p["id"] == project_b["id"])
+    assert row_b["incident_counts"]["total"] == 0
+    assert row_b["last_runs"] == []
+    assert row_b["last_incident_at"] is None
