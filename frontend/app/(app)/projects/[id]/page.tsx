@@ -120,13 +120,13 @@ function ApiKeysSection({ projectId }: { projectId: string }) {
   return (
     <SectionCard title="API keys">
       <p className="mb-4 text-sm text-zinc-500">
-        Used by the GitHub Action and the webhook endpoint. Keys are stored hashed — the raw key
+        Used by the GitHub Action and the webhook endpoint. Keys are stored hashed. The raw key
         is shown once, right after generation.
       </p>
       {newKey ? (
         <div className="mb-4 space-y-2 rounded-md border border-zinc-300 bg-surface p-4">
           <div className="text-xs font-medium uppercase tracking-wide text-zinc-700">
-            Copy this key now — it won&apos;t be shown again
+            Copy this key now, it won&apos;t be shown again
           </div>
           <div className="flex items-center gap-2">
             <code className="flex-1 overflow-x-auto rounded border border-edge bg-white px-2 py-1.5 font-mono text-xs text-zinc-800">
@@ -270,7 +270,7 @@ function ProjectSettingsForm({ project, onSaved }: { project: Project; onSaved: 
               onChange={(e) => setMaxToolCalls(Number(e.target.value))}
             />
             <span className="text-[11px] text-zinc-400">
-              Hard cap enforced in code — keeps the investigator from spiraling.
+              Hard cap enforced in code, keeps the investigator from spiraling.
             </span>
           </label>
           <label className="block text-xs text-zinc-500">
@@ -349,7 +349,7 @@ export default function ProjectDetailPage() {
         method: "POST",
         body: JSON.stringify({ trigger: "manual" }),
       });
-      toast("Triage started — investigating now", "success");
+      toast("Triage started, investigating now", "success");
       router.push(`/incidents/${incident.id}`);
     } catch (err) {
       toast(err instanceof Error ? err.message : "Failed to trigger incident", "error");
@@ -369,7 +369,7 @@ export default function ProjectDetailPage() {
   if (!project) {
     return (
       <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-sm text-red-700">
-        Project not found —{" "}
+        Project not found.{" "}
         <Link href="/projects" className="underline">
           back to projects
         </Link>

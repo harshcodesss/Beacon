@@ -169,3 +169,68 @@ def test_logout_revokes_session(client):
 def test_logout_is_idempotent(client):
     resp = client.post("/auth/logout", json={"refresh_token": "beacon_rt_never_existed"})
     assert resp.status_code == 204
+
+
+# ---- session listing / revocation ----
+
+
+def test_list_sessions_marks_current(client):
+    data = _signin_tokens(client, email="sess@test.com")
+    headers = {"Authorization": f"Bearer {data['access_token']}"}
+    resp = client.get("/auth/sessions", headers=headers)
+    assert resp.status_code == 200
+    rows = resp.json()
+    assert len(rows) == 1
+    assert rows[0]["current"] is True
+    assert "refresh_token_hash" not in rows[0]
+
+
+def test_revoke_other_session(client):
+    first = _signin_tokens(client, email="multi@test.com")
+    second = _signin_tokens(client, email="multi@test.com")  # same user, new session
+    headers = {"Authorization": f"Bearer {second['access_token']}"}
+    rows = client.get("/auth/sessions", headers=headers).json()
+    other = next(r for r in rows if not r["current"])
+    assert client.delete(f"/auth/sessions/{other['id']}", headers=headers).status_code == 204
+    # the revoked session's refresh token is now dead
+    dead = client.post("/auth/refresh", json={"refresh_token": first["refresh_token"]})
+    assert dead.status_code == 401
+
+
+def test_revoke_nonexistent_session_is_idempotent(client):
+    data = _signin_tokens(client, email="ghost@test.com")
+    headers = {"Authorization": f"Bearer {data['access_token']}"}
+    fake_id = "00000000-0000-0000-0000-000000000000"
+    assert client.delete(f"/auth/sessions/{fake_id}", headers=headers).status_code == 204
+    # own session is unaffected
+    rows = client.get("/auth/sessions", headers=headers).json()
+    assert len(rows) == 1
+
+
+def test_revoke_scoped_to_owner(client):
+    victim = _signin_tokens(client, email="victim@test.com")
+    attacker = _signin_tokens(client, email="attacker@test.com")
+    victim_headers = {"Authorization": f"Bearer {victim['access_token']}"}
+    victim_session_id = client.get("/auth/sessions", headers=victim_headers).json()[0]["id"]
+
+    attacker_headers = {"Authorization": f"Bearer {attacker['access_token']}"}
+    resp = client.delete(f"/auth/sessions/{victim_session_id}", headers=attacker_headers)
+    assert resp.status_code == 204  # idempotent response, no leak of existence
+
+    # victim's session still works
+    refreshed = client.post("/auth/refresh", json={"refresh_token": victim["refresh_token"]})
+    assert refreshed.status_code == 200
+
+
+def test_logout_all_kills_every_session(client):
+    first = _signin_tokens(client, email="everywhere@test.com")
+    second = _signin_tokens(client, email="everywhere@test.com")
+    headers = {"Authorization": f"Bearer {second['access_token']}"}
+    assert client.post("/auth/logout-all", headers=headers).status_code == 204
+
+    assert client.post(
+        "/auth/refresh", json={"refresh_token": first["refresh_token"]}
+    ).status_code == 401
+    assert client.post(
+        "/auth/refresh", json={"refresh_token": second["refresh_token"]}
+    ).status_code == 401

@@ -11,8 +11,10 @@ from app.schemas import (
     AccuracyStats,
     ApiKeyCreated,
     ApiKeyOut,
+    IncidentCounts,
     IncidentSummary,
     ProjectCreate,
+    ProjectHealth,
     ProjectOut,
     ProjectUpdate,
     ProjectWithStats,
@@ -59,14 +61,34 @@ def _with_stats(db: Session, project: Project) -> ProjectWithStats:
     )
 
 
-@router.get("/projects", response_model=list[ProjectWithStats])
+def _health_for(db: Session, project: Project) -> ProjectHealth:
+    incs = db.scalars(
+        select(Incident)
+        .where(Incident.project_id == project.id)
+        .order_by(desc(Incident.created_at))
+    ).all()
+    counts = IncidentCounts(
+        total=len(incs),
+        done=sum(1 for i in incs if i.status == IncidentStatus.done),
+        failed=sum(1 for i in incs if i.status == IncidentStatus.failed),
+    )
+    last_runs = [i.status.value for i in incs[:10]][::-1]  # oldest-first for the strip
+    return ProjectHealth(
+        **_with_stats(db, project).model_dump(),
+        last_runs=last_runs,
+        incident_counts=counts,
+        last_incident_at=incs[0].created_at if incs else None,
+    )
+
+
+@router.get("/projects", response_model=list[ProjectHealth])
 def list_projects(
     user: User = Depends(get_current_user), db: Session = Depends(get_db)
-) -> list[ProjectWithStats]:
+) -> list[ProjectHealth]:
     projects = db.scalars(
         select(Project).where(Project.user_id == user.id).order_by(desc(Project.created_at))
     ).all()
-    return [_with_stats(db, p) for p in projects]
+    return [_health_for(db, p) for p in projects]
 
 
 @router.post("/projects", response_model=ProjectOut, status_code=status.HTTP_201_CREATED)

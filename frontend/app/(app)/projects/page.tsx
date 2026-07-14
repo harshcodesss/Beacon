@@ -1,189 +1,200 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
 
+import { NewProjectModal } from "@/components/app/NewProjectModal";
+import { ProjectCard } from "@/components/app/ProjectCard";
 import { EmptyState } from "@/components/EmptyState";
 import { CardSkeleton } from "@/components/Skeleton";
 import { useToast } from "@/components/Toast";
-import { apiFetch } from "@/lib/api";
-import { formatWhen, primaryButton, secondaryButton } from "@/lib/format";
-import type { ProjectWithStats } from "@/lib/types";
-import { useApi, useBackendToken } from "@/lib/useApi";
+import { FunnelSelect } from "@/components/ui/FunnelSelect";
+import { SegmentedTabs } from "@/components/ui/SegmentedTabs";
+import type { ProjectHealth } from "@/lib/types";
+import { useApi } from "@/lib/useApi";
 
-function NewProjectForm({ onCreated }: { onCreated: () => void }) {
-  const toast = useToast();
-  const token = useBackendToken();
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [repo, setRepo] = useState("");
-  const [logPath, setLogPath] = useState("./logs/app.log");
-  const [saving, setSaving] = useState(false);
+type TabValue = "all" | "failing" | "quiet";
+type SortValue = "recent" | "name" | "incidents";
 
-  async function submit(event: React.FormEvent) {
-    event.preventDefault();
-    setSaving(true);
-    try {
-      await apiFetch("/projects", token, {
-        method: "POST",
-        body: JSON.stringify({
-          name,
-          repo_full_name: repo,
-          log_source_type: "file",
-          settings: {
-            path: logPath,
-            budget: { max_tool_calls: 15, max_tokens: 60000 },
-          },
-        }),
-      });
-      toast(`Project “${name}” created`, "success");
-      setOpen(false);
-      setName("");
-      setRepo("");
-      onCreated();
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Failed to create project", "error");
-    } finally {
-      setSaving(false);
-    }
-  }
+const QUIET_MS = 14 * 864e5;
 
-  if (!open) {
-    return (
-      <button type="button" onClick={() => setOpen(true)} className={`px-4 py-2 ${primaryButton}`}>
-        New project
-      </button>
-    );
-  }
+function isFailing(project: ProjectHealth): boolean {
+  return project.last_runs.some((status) => status === "failed");
+}
 
+function isQuiet(project: ProjectHealth): boolean {
   return (
-    <form
-      onSubmit={submit}
-      className="flex flex-wrap items-end gap-3 rounded-lg border border-edge bg-surface-raised p-4"
-    >
-      <label className="flex flex-col gap-1 text-xs text-zinc-500">
-        Name
-        <input
-          required
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="h-9 w-44 rounded-md border border-edge bg-white px-3 text-sm text-zinc-800 outline-none focus:border-beacon"
-          placeholder="checkout-api"
-        />
-      </label>
-      <label className="flex flex-col gap-1 text-xs text-zinc-500">
-        Repository
-        <input
-          value={repo}
-          onChange={(e) => setRepo(e.target.value)}
-          className="h-9 w-52 rounded-md border border-edge bg-white px-3 text-sm text-zinc-800 outline-none focus:border-beacon"
-          placeholder="org/repo"
-        />
-      </label>
-      <label className="flex flex-col gap-1 text-xs text-zinc-500">
-        Log path
-        <input
-          value={logPath}
-          onChange={(e) => setLogPath(e.target.value)}
-          className="h-9 w-44 rounded-md border border-edge bg-white px-3 font-mono text-xs text-zinc-800 outline-none focus:border-beacon"
-        />
-      </label>
-      <div className="flex gap-2">
-        <button type="submit" disabled={saving} className={`h-9 px-4 ${primaryButton}`}>
-          {saving ? "Creating…" : "Create"}
-        </button>
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          className={`h-9 px-3 text-sm ${secondaryButton}`}
-        >
-          Cancel
-        </button>
-      </div>
-    </form>
+    !project.last_incident_at ||
+    Date.now() - new Date(project.last_incident_at).getTime() > QUIET_MS
   );
 }
 
-function ProjectCard({ project }: { project: ProjectWithStats }) {
-  const lastRun = project.recent_incidents[0]?.created_at;
+function NewProjectCell({ onClick }: { onClick: () => void }) {
   return (
-    <Link
-      href={`/projects/${project.id}`}
-      className="group rounded-lg border border-edge bg-surface-raised p-5 transition-colors hover:border-zinc-400"
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex min-h-[200px] flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-edge text-center hover:border-beacon/50"
     >
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="flex items-center gap-2 text-sm font-semibold text-zinc-900">
-          {project.name}
-          {project.settings?.demo ? (
-            <span className="rounded-full border border-edge bg-surface px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-500">
-              demo
-            </span>
-          ) : null}
-        </h3>
-        <span className="text-zinc-300 transition-colors group-hover:text-zinc-500">→</span>
-      </div>
-      {project.repo_full_name ? (
-        <p className="mt-0.5 font-mono text-xs text-zinc-500">{project.repo_full_name}</p>
-      ) : null}
-      <dl className="mt-4 grid grid-cols-3 gap-2 border-t border-edge pt-3 text-xs">
-        <div>
-          <dt className="text-zinc-400">Incidents</dt>
-          <dd className="mt-0.5 font-mono text-sm font-semibold text-zinc-800">
-            {project.incident_count}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-zinc-400">Last run</dt>
-          <dd className="mt-0.5 font-mono text-sm font-semibold text-zinc-800">
-            {lastRun ? formatWhen(lastRun) : "—"}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-zinc-400">Top-1 acc.</dt>
-          <dd className="mt-0.5 font-mono text-sm font-semibold text-zinc-800">
-            {project.accuracy ? `${Math.round(project.accuracy.top1_rate * 100)}%` : "—"}
-          </dd>
-        </div>
-      </dl>
-    </Link>
+      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-ink text-2xl text-beacon">
+        +
+      </span>
+      <span className="text-[13px] font-semibold">New project</span>
+      <span className="text-[11px] text-zinc-400 max-w-[170px]">
+        Point Beacon at a repo and its logs. Reports on the next failure.
+      </span>
+    </button>
   );
 }
 
-export default function ProjectsPage() {
-  const { data: projects, error, loading, refresh } = useApi<ProjectWithStats[]>("/projects");
+function ProjectsPageInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const toast = useToast();
+  const { data: projects, error, loading } = useApi<ProjectHealth[]>("/projects");
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [tab, setTab] = useState<TabValue>("all");
+  const [sort, setSort] = useState<SortValue>("recent");
 
   useEffect(() => {
     if (error) toast(error, "error");
   }, [error, toast]);
 
+  useEffect(() => {
+    if (searchParams.get("new") === "1") setModalOpen(true);
+  }, [searchParams]);
+
+  function openModal() {
+    setModalOpen(true);
+  }
+
+  function closeModal() {
+    setModalOpen(false);
+    if (searchParams.get("new") === "1") router.replace("/projects");
+  }
+
+  const counts = useMemo(() => {
+    const list = projects ?? [];
+    return {
+      all: list.length,
+      failing: list.filter(isFailing).length,
+      quiet: list.filter(isQuiet).length,
+    };
+  }, [projects]);
+
+  const visibleProjects = useMemo(() => {
+    const list = projects ?? [];
+    const filtered =
+      tab === "failing" ? list.filter(isFailing) : tab === "quiet" ? list.filter(isQuiet) : list;
+
+    const sorted = [...filtered];
+    if (sort === "recent") {
+      sorted.sort((a, b) => {
+        if (!a.last_incident_at && !b.last_incident_at) return 0;
+        if (!a.last_incident_at) return 1;
+        if (!b.last_incident_at) return -1;
+        return new Date(b.last_incident_at).getTime() - new Date(a.last_incident_at).getTime();
+      });
+    } else if (sort === "name") {
+      sorted.sort((a, b) => a.name.localeCompare(b.name));
+    } else {
+      sorted.sort((a, b) => b.incident_counts.total - a.incident_counts.total);
+    }
+    return sorted;
+  }, [projects, tab, sort]);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-zinc-900">Projects</h1>
-          <p className="text-sm text-zinc-500">Incident triage across your services</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-ink">Projects</h1>
+          <p className="text-sm text-zinc-500">
+            Every service Beacon is watching, and how it has been holding up.
+          </p>
         </div>
-        <NewProjectForm onCreated={refresh} />
+        <button
+          type="button"
+          onClick={openModal}
+          className="rounded-lg bg-ink px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-black"
+        >
+          + New project
+        </button>
       </div>
 
       {loading && !projects ? (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 lg:grid-cols-3">
+          <CardSkeleton />
           <CardSkeleton />
           <CardSkeleton />
         </div>
-      ) : projects?.length ? (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {projects.map((project) => (
-            <ProjectCard key={project.id} project={project} />
-          ))}
-        </div>
-      ) : (
+      ) : !projects || projects.length === 0 ? (
         <EmptyState
           title="No projects yet"
           description="Create a project pointing at your service's logs and repository, then trigger your first triage run."
+          action={
+            <Link
+              href="/install"
+              className="mt-2 inline-block rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white hover:bg-black"
+            >
+              Set up a project
+            </Link>
+          }
         />
+      ) : (
+        <>
+          <div className="flex items-center justify-between border-b border-edge pb-3">
+            <SegmentedTabs
+              value={tab}
+              onChange={setTab}
+              options={[
+                { value: "all", label: "All projects", count: counts.all },
+                { value: "failing", label: "Failing", count: counts.failing },
+                { value: "quiet", label: "Quiet", count: counts.quiet },
+              ]}
+            />
+            <FunnelSelect
+              label="Sort"
+              value={sort}
+              onChange={setSort}
+              options={[
+                { value: "recent", label: "Recent activity" },
+                { value: "name", label: "Name" },
+                { value: "incidents", label: "Most incidents" },
+              ]}
+            />
+          </div>
+
+          {visibleProjects.length === 0 ? (
+            <p className="text-sm text-zinc-500">No projects match this filter.</p>
+          ) : null}
+
+          <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 lg:grid-cols-3">
+            {visibleProjects.map((project) => (
+              <ProjectCard key={project.id} project={project} />
+            ))}
+            <NewProjectCell onClick={openModal} />
+          </div>
+        </>
       )}
+
+      <NewProjectModal
+        open={modalOpen}
+        onClose={closeModal}
+        onCreated={(id) => {
+          setModalOpen(false);
+          router.push(`/projects/${id}`);
+        }}
+      />
     </div>
+  );
+}
+
+export default function ProjectsPage() {
+  return (
+    <Suspense>
+      <ProjectsPageInner />
+    </Suspense>
   );
 }

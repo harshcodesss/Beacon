@@ -1,146 +1,104 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
+import { IncidentsTable } from "@/components/app/IncidentsTable";
 import { EmptyState } from "@/components/EmptyState";
 import { CardSkeleton } from "@/components/Skeleton";
-import { StatusChip } from "@/components/StatusChip";
 import { useToast } from "@/components/Toast";
-import { formatWhen, secondaryButton } from "@/lib/format";
-import type { IncidentFeedPage, IncidentStatus, ProjectWithStats } from "@/lib/types";
+import { FunnelSelect } from "@/components/ui/FunnelSelect";
+import { SegmentedTabs } from "@/components/ui/SegmentedTabs";
+import type { IncidentFeedPage, ProjectHealth, StatsOverview } from "@/lib/types";
 import { useApi } from "@/lib/useApi";
 
-const STATUSES: IncidentStatus[] = ["queued", "running", "done", "failed"];
-const PAGE_SIZE = 20;
+type TabValue = "all" | "running" | "done" | "failed";
 
 export default function IncidentsPage() {
   const toast = useToast();
-  const [projectId, setProjectId] = useState("");
-  const [status, setStatus] = useState("");
-  const [page, setPage] = useState(1);
+  const [tab, setTab] = useState<TabValue>("all");
+  const [projectId, setProjectId] = useState("all");
 
-  const query = new URLSearchParams({ page: `${page}`, page_size: `${PAGE_SIZE}` });
-  if (projectId) query.set("project_id", projectId);
-  if (status) query.set("status", status);
+  const { data: stats } = useApi<StatsOverview>("/stats/overview");
+  const { data: projects } = useApi<ProjectHealth[]>("/projects");
 
-  const { data: projects } = useApi<ProjectWithStats[]>("/projects");
-  const { data, error, loading } = useApi<IncidentFeedPage>(
-    `/incidents?${query.toString()}`,
-    { pollMs: 10000 },
-  );
-  const totalPages = data ? Math.max(1, Math.ceil(data.total / data.page_size)) : 1;
+  const feedPath = useMemo(() => {
+    const query = new URLSearchParams({ page_size: "50" });
+    if (tab !== "all") query.set("status", tab);
+    if (projectId !== "all") query.set("project_id", projectId);
+    return `/incidents?${query.toString()}`;
+  }, [tab, projectId]);
+
+  const {
+    data: feed,
+    error,
+    loading,
+  } = useApi<IncidentFeedPage>(feedPath, { pollMs: 10000 });
 
   useEffect(() => {
     if (error) toast(error, "error");
   }, [error, toast]);
 
-  const selectClass =
-    "h-9 rounded-md border border-edge bg-white px-2.5 text-sm text-zinc-700 outline-none focus:border-beacon";
+  const projectOptions = useMemo(
+    () => [
+      { value: "all", label: "All projects" },
+      ...(projects ?? []).map((project) => ({ value: project.id, label: project.name })),
+    ],
+    [projects],
+  );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-semibold text-zinc-900">Incidents</h1>
-        <p className="text-sm text-zinc-500">Every triage run across your projects</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">Incidents</h1>
+        <p className="text-sm text-zinc-500">
+          Every triage run across your projects, newest first.
+        </p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <select
-          value={projectId}
-          onChange={(e) => {
-            setProjectId(e.target.value);
-            setPage(1);
-          }}
-          className={selectClass}
-          aria-label="Filter by project"
-        >
-          <option value="">All projects</option>
-          {projects?.map((project) => (
-            <option key={project.id} value={project.id}>
-              {project.name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={status}
-          onChange={(e) => {
-            setStatus(e.target.value);
-            setPage(1);
-          }}
-          className={selectClass}
-          aria-label="Filter by status"
-        >
-          <option value="">All statuses</option>
-          {STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-        {data ? (
-          <span className="text-xs text-zinc-500">
-            {data.total} incident{data.total === 1 ? "" : "s"}
-          </span>
-        ) : null}
-      </div>
-
-      {loading && !data ? (
-        <CardSkeleton />
-      ) : data?.items.length ? (
-        <div className="overflow-hidden rounded-lg border border-edge bg-surface-raised">
-          <ul className="divide-y divide-edge">
-            {data.items.map((incident) => (
-              <li key={incident.id}>
-                <Link
-                  href={`/incidents/${incident.id}`}
-                  className="flex items-center justify-between gap-3 px-4 py-2.5 transition-colors hover:bg-surface-overlay"
-                >
-                  <span className="flex min-w-0 items-center gap-3">
-                    <StatusChip status={incident.status} />
-                    <span className="truncate text-sm text-zinc-700">
-                      {incident.project_name}
-                    </span>
-                    <span className="hidden font-mono text-xs text-zinc-400 sm:inline">
-                      {incident.id.slice(0, 8)}
-                    </span>
-                  </span>
-                  <span className="shrink-0 text-xs text-zinc-500">
-                    {incident.trigger} · {formatWhen(incident.created_at)}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : (
-        <EmptyState
-          title="No incidents match"
-          description="Adjust the filters, or trigger a triage run from a project."
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-edge pb-3">
+        <SegmentedTabs
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: "all", label: "All", count: stats?.total_incidents ?? 0 },
+            { value: "running", label: "Running", count: stats?.active ?? 0 },
+            { value: "done", label: "Done", count: stats?.done ?? 0 },
+            { value: "failed", label: "Failed", count: stats?.failed ?? 0 },
+          ]}
         />
-      )}
-
-      {data && totalPages > 1 ? (
-        <div className="flex items-center justify-center gap-3 text-sm text-zinc-500">
-          <button
-            type="button"
-            disabled={page <= 1}
-            onClick={() => setPage((p) => p - 1)}
-            className={`px-3 py-1.5 text-xs ${secondaryButton}`}
-          >
-            ← Prev
-          </button>
-          Page {page} of {totalPages}
-          <button
-            type="button"
-            disabled={page >= totalPages}
-            onClick={() => setPage((p) => p + 1)}
-            className={`px-3 py-1.5 text-xs ${secondaryButton}`}
-          >
-            Next →
-          </button>
+        <div className="flex items-center gap-4">
+          <span className="flex items-center gap-1.5 text-[11px] text-zinc-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-ok" />
+            live
+          </span>
+          <FunnelSelect
+            label="Project"
+            value={projectId}
+            onChange={setProjectId}
+            options={projectOptions}
+          />
         </div>
-      ) : null}
+      </div>
+
+      {loading && !feed ? (
+        <div className="space-y-3.5">
+          <CardSkeleton />
+          <CardSkeleton />
+        </div>
+      ) : !feed || feed.items.length === 0 ? (
+        <EmptyState
+          title="No incidents yet"
+          description="Create a project and trigger your first triage run to see Beacon work."
+          action={
+            <Link href="/projects" className="text-sm text-zinc-900 underline">
+              Go to projects
+            </Link>
+          }
+        />
+      ) : (
+        <IncidentsTable items={feed.items} />
+      )}
     </div>
   );
 }

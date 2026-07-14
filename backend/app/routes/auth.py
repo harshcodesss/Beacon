@@ -1,15 +1,25 @@
 import logging
+import uuid
 from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import security
 from app.config import settings
 from app.db import get_db
+from app.deps import get_current_user
 from app.models import AuthSession, User
-from app.schemas import LogoutIn, OAuthCallbackIn, RefreshIn, RefreshOut, TokenOut, UserOut
+from app.schemas import (
+    LogoutIn,
+    OAuthCallbackIn,
+    RefreshIn,
+    RefreshOut,
+    SessionOut,
+    TokenOut,
+    UserOut,
+)
 from app.seed import seed_demo_project
 
 logger = logging.getLogger(__name__)
@@ -142,3 +152,65 @@ def logout(body: LogoutIn, db: Session = Depends(get_db)) -> None:
     if auth_session is not None:
         db.delete(auth_session)
         db.commit()
+
+
+def _current_sid(authorization: str = Header(default="")) -> str | None:
+    token = authorization.removeprefix("Bearer ").strip()
+    try:
+        return security.decode_session_id(token) if token else None
+    except Exception:
+        return None
+
+
+@router.get("/auth/sessions", response_model=list[SessionOut])
+def list_sessions(
+    user: User = Depends(get_current_user),
+    sid: str | None = Depends(_current_sid),
+    db: Session = Depends(get_db),
+) -> list[SessionOut]:
+    """List this user's live sign-ins, newest first, marking the caller's own."""
+    rows = db.scalars(
+        select(AuthSession)
+        .where(AuthSession.user_id == user.id)
+        .order_by(AuthSession.created_at.desc())
+    ).all()
+    return [
+        SessionOut(
+            id=r.id,
+            remember=r.remember,
+            created_at=r.created_at,
+            last_used_at=r.last_used_at,
+            current=(str(r.id) == sid),
+        )
+        for r in rows
+    ]
+
+
+@router.delete("/auth/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
+def revoke_session(
+    session_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    """Revoke one session by id, scoped to the caller. Idempotent: an id
+    that doesn't exist or isn't owned by this user is a no-op, not an error,
+    so callers can't probe for other users' session ids."""
+    row = db.scalar(
+        select(AuthSession).where(
+            AuthSession.id == session_id, AuthSession.user_id == user.id
+        )
+    )
+    if row is not None:
+        db.delete(row)
+        db.commit()
+
+
+@router.post("/auth/logout-all", status_code=status.HTTP_204_NO_CONTENT)
+def logout_all(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    """Revoke every session for the caller, including the one used to call this."""
+    for row in db.scalars(select(AuthSession).where(AuthSession.user_id == user.id)).all():
+        db.delete(row)
+    db.commit()
