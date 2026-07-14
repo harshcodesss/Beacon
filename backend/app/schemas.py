@@ -61,6 +61,14 @@ class RefreshOut(BaseModel):
     expires_in: int
 
 
+class SessionOut(BaseModel):
+    id: uuid.UUID
+    remember: bool
+    created_at: datetime
+    last_used_at: datetime
+    current: bool
+
+
 # ---- projects ----
 
 
@@ -106,6 +114,18 @@ class ProjectWithStats(ProjectOut):
     incident_count: int = 0
     recent_incidents: list[IncidentSummary] = Field(default_factory=list)
     accuracy: AccuracyStats | None = None
+
+
+class IncidentCounts(BaseModel):
+    total: int = 0
+    done: int = 0
+    failed: int = 0
+
+
+class ProjectHealth(ProjectWithStats):
+    last_runs: list[str] = Field(default_factory=list)  # oldest-first, max 10
+    incident_counts: IncidentCounts = Field(default_factory=IncidentCounts)
+    last_incident_at: datetime | None = None
 
 
 # ---- incidents / reports ----
@@ -156,6 +176,16 @@ class StatsOverview(BaseModel):
     accuracy: AccuracyStats | None = None
     avg_tokens: float = 0
     avg_tool_calls: float = 0
+
+
+class ActivityDay(BaseModel):
+    date: str  # YYYY-MM-DD, UTC
+    total: int
+    failed: int
+
+
+class ActivitySeries(BaseModel):
+    days: list[ActivityDay]
 
 
 # ---- api keys ----

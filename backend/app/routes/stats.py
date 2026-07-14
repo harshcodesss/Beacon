@@ -1,13 +1,21 @@
-from fastapi import APIRouter, Depends
+from datetime import UTC, datetime, timedelta
+
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.deps import get_current_user
 from app.models import Incident, IncidentStatus, Project, Report, User
-from app.schemas import AccuracyStats, StatsOverview
+from app.schemas import AccuracyStats, ActivityDay, ActivitySeries, StatsOverview
 
 router = APIRouter(tags=["stats"])
+
+
+def _as_utc(dt: datetime) -> datetime:
+    """SQLite (tests) returns naive datetimes for tz-aware columns; they are
+    stored as UTC, so stamp the zone back on."""
+    return dt if dt.tzinfo is not None else dt.replace(tzinfo=UTC)
 
 
 @router.get("/stats/overview", response_model=StatsOverview)
@@ -56,4 +64,36 @@ def stats_overview(
         avg_tool_calls=(
             round(sum(r.tool_calls_used for r in reports) / len(reports), 1) if reports else 0
         ),
+    )
+
+
+@router.get("/stats/activity", response_model=ActivitySeries)
+def stats_activity(
+    days: int = Query(default=14, ge=1, le=90),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ActivitySeries:
+    """Per-day incident counts over the trailing window, for the Home histogram."""
+    today = datetime.now(UTC).date()
+    start = today - timedelta(days=days - 1)
+    rows = db.execute(
+        select(Incident.created_at, Incident.status)
+        .join(Project, Incident.project_id == Project.id)
+        .where(
+            Project.user_id == user.id,
+            Incident.created_at
+            >= datetime(start.year, start.month, start.day, tzinfo=UTC),
+        )
+    ).all()
+    buckets: dict[str, dict[str, int]] = {
+        (start + timedelta(days=i)).isoformat(): {"total": 0, "failed": 0} for i in range(days)
+    }
+    for created_at, status in rows:
+        key = _as_utc(created_at).date().isoformat()
+        if key in buckets:
+            buckets[key]["total"] += 1
+            if status == IncidentStatus.failed:
+                buckets[key]["failed"] += 1
+    return ActivitySeries(
+        days=[ActivityDay(date=d, total=v["total"], failed=v["failed"]) for d, v in buckets.items()]
     )
