@@ -30,7 +30,11 @@ RUN pip install --no-cache-dir \
 
 COPY backend/ .
 COPY beacon/ ./beacon/
+RUN chmod +x start-api.sh start-worker.sh
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Render's Docker Command UI field mangles quoted multi-command strings, so the
+# real startup commands live here instead. API is the default; Render's worker
+# service overrides via a plain "sh start-worker.sh" (no quotes/&& needed).
+CMD ["sh", "start-api.sh"]
