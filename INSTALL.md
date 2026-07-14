@@ -84,7 +84,7 @@ setting step `env`:
 | `log_path`       | no       | `./logs/app.log`                     | Log file to triage, relative to the workspace           |
 | `window_minutes` | no       | `30`                                 | Trailing minutes of logs handed to the agent            |
 | `beacon_api_key` | no       | —                                    | Beacon dashboard key; omit to skip dashboard delivery   |
-| `api_url`        | no       | `https://api.beacon.dev`             | Beacon API base URL (point at your own deployment)      |
+| `api_url`        | no       | `https://beacon-cono.onrender.com`   | Beacon API base URL (point at your own deployment)      |
 | `github_token`   | no       | workflow token                       | Token used to comment; pass `""` to disable commenting  |
 
 \* Set the key matching your `llm_model`. Without any provider key the Action
