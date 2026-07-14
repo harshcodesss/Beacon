@@ -51,7 +51,7 @@ inputs:
   api_url:
     description: "Base URL of the Beacon API."
     required: false
-    default: "https://api.beacon.dev"
+    default: "https://beacon-cono.onrender.com"
   github_token:
     description: >-
       Token used to comment the report on the triggering PR/issue.
