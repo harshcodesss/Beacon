@@ -35,6 +35,7 @@ RUN chmod +x start-api.sh start-worker.sh
 EXPOSE 8000
 
 # Render's Docker Command UI field mangles quoted multi-command strings, so the
-# real startup commands live here instead. API is the default; Render's worker
-# service overrides via a plain "sh start-worker.sh" (no quotes/&& needed).
+# real startup commands live here instead. start-api.sh also backgrounds the RQ
+# worker in-process (Render free tier has no worker service); start-worker.sh
+# stays as the split-out command for a dedicated worker service later.
 CMD ["sh", "start-api.sh"]
