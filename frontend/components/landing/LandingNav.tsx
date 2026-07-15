@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 const LINKS = [
   { href: "#story", label: "How it works" },
   { href: "#install", label: "Install" },
+  { href: "#agents", label: "Agents" },
+  { href: "#workflow", label: "Workflow" },
   { href: "https://github.com/harshcodesss/Beacon", label: "GitHub", external: true },
 ];
 

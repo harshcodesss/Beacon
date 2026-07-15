@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "Beacon — AI incident triage",
+  title: "Beacon · AI incident triage",
   description:
     "Beacon lights the way to root cause: evidence-cited incident reports from an agent pipeline.",
 };

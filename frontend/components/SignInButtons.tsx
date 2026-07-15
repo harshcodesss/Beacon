@@ -61,7 +61,7 @@ export function SignInButtons() {
       ) : null}
       {!providers.github && !providers.dev ? (
         <p className="text-sm text-red-700">
-          No auth providers configured — set GITHUB_CLIENT_ID or AUTH_DEV_MODE=true.
+          No auth providers configured. Set GITHUB_CLIENT_ID or AUTH_DEV_MODE=true.
         </p>
       ) : null}
     </div>

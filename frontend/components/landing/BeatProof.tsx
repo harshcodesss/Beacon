@@ -48,7 +48,7 @@ function Intro() {
       </h2>
       <p className="max-w-md text-base leading-relaxed text-zinc-600">
         Every claim in the report cites the line that proves it. A deterministic gate
-        drops any citation it can&apos;t verify against the evidence Beacon actually gathered.
+        flags any citation it can&apos;t verify against the evidence Beacon actually gathered.
         The model writes the prose; code guarantees the evidence.
       </p>
     </div>

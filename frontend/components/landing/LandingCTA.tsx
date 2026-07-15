@@ -31,7 +31,7 @@ export function LandingCTA({ onSignIn }: { onSignIn: () => void }) {
                 onClick={onSignIn}
                 className="rounded-lg bg-ink px-5 py-2.5 text-sm font-semibold text-white shadow-[0px_2px_0px_0px_#FFFFFF40_inset] transition-colors duration-200 hover:bg-zinc-800"
               >
-                Sign in with Google
+                Sign in with GitHub
               </button>
               <a
                 href="https://github.com/harshcodesss/Beacon"
