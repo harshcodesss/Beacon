@@ -1,7 +1,4 @@
-import { Collapsible } from "@/components/Collapsible";
-import { ConfidenceBar } from "@/components/ConfidenceBar";
-import { EvidenceChip } from "@/components/EvidenceChip";
-import type { Verdict, VerdictItem } from "@/lib/types";
+import type { Verdict } from "@/lib/types";
 
 // Accept/reject badges keep the same semantic tints as status chips.
 const VERDICT_BADGES: Record<Verdict, string> = {
@@ -18,37 +15,5 @@ export function VerdictBadge({ verdict }: { verdict: Verdict }) {
     >
       {verdict}
     </span>
-  );
-}
-
-export function VerdictsSection({ verdicts }: { verdicts: VerdictItem[] }) {
-  return (
-    <Collapsible title="Verdicts" badge={`${verdicts.length}`} defaultOpen>
-      <ul className="space-y-4">
-        {verdicts.map((verdict) => (
-          <li
-            key={verdict.hypothesis_id}
-            className="rounded-md border border-edge bg-surface p-4"
-            data-testid="verdict-card"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-xs text-zinc-500">{verdict.hypothesis_id}</span>
-                <VerdictBadge verdict={verdict.verdict} />
-              </div>
-              <ConfidenceBar value={verdict.confidence} />
-            </div>
-            <p className="mt-3 text-sm leading-relaxed text-zinc-700">{verdict.reasoning}</p>
-            {verdict.evidence?.length ? (
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {verdict.evidence.map((citation) => (
-                  <EvidenceChip key={citation} citation={citation} />
-                ))}
-              </div>
-            ) : null}
-          </li>
-        ))}
-      </ul>
-    </Collapsible>
   );
 }
