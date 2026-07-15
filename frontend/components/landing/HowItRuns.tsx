@@ -54,7 +54,7 @@ const STATIONS = [
 // scroll-back. Every scene shares this vocabulary so the three feel identical.
 const sceneV: Variants = {
   hidden: {},
-  shown: { transition: { staggerChildren: 0.11, delayChildren: 0.15 } },
+  shown: { transition: { staggerChildren: 0.11, delayChildren: 0 } },
 };
 const rowV: Variants = {
   hidden: { opacity: 0, x: -14 },
@@ -79,7 +79,7 @@ const stampV: Variants = {
 };
 const cardV: Variants = {
   hidden: { opacity: 0, y: 28 },
-  shown: { opacity: 1, y: 0, transition: { duration: 0.45, ease: EASE, when: "beforeChildren" } },
+  shown: { opacity: 1, y: 0, transition: { duration: 0.45, ease: EASE } },
 };
 
 /* ------------------------------------------------------------ the scenes */

@@ -15,7 +15,7 @@ import {
 export function GeneratorDiagram({ animated, shown }: { animated: boolean; shown: boolean }) {
   return (
     <DiagramSvg
-      viewBox="0 0 860 430"
+      viewBox="0 -50 860 530"
       label="Hypothesis Generator workflow: read the context pack, build the prompt, one structured LLM call, post-process into ranked hypotheses"
       animated={animated}
       shown={shown}

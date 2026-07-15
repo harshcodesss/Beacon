@@ -1,6 +1,6 @@
 "use client";
 
-/* The pipeline section: a horizontal spine with the five-agent relay
+/* The pipeline section: a horizontal spine with the four-agent relay
  * (START and END as quiet pills, four uniform agent chips), and one fixed
  * detail panel below that redraws the active agent's workflow diagram.
  * Clicking a chip powers up that agent's circuit: nodes cascade in, edges
@@ -97,12 +97,14 @@ function TerminalPill({ label, side }: { label: string; side: "left" | "right" }
 function StageChip({
   stage,
   active,
+  passed,
   onSelect,
   className = "",
   style,
 }: {
   stage: Stage;
   active: boolean;
+  passed: boolean;
   onSelect: () => void;
   className?: string;
   style?: React.CSSProperties;
@@ -113,10 +115,12 @@ function StageChip({
       onClick={onSelect}
       aria-pressed={active}
       style={style}
-      className={`flex h-[56px] w-[126px] flex-col items-center justify-center gap-1 rounded-lg border-[1.5px] bg-white text-center leading-tight transition-all duration-300 ${
+      className={`flex h-[56px] w-[132px] flex-col items-center justify-center gap-1 rounded-lg border-[1.5px] bg-white text-center leading-tight transition-all duration-300 ${
         active
           ? "border-beacon text-zinc-900 shadow-lg shadow-beacon/15"
-          : "border-edge text-zinc-500 hover:border-zinc-400 hover:text-zinc-700"
+          : passed
+            ? "border-beacon text-zinc-500 shadow-lg shadow-beacon/15 hover:text-zinc-700"
+            : "border-edge text-zinc-500 hover:border-zinc-400 hover:text-zinc-700"
       } ${className}`}
     >
       <span
@@ -135,6 +139,7 @@ export function WorkflowSection() {
   const reduced = useReducedMotion() ?? false;
   const [activeId, setActiveId] = useState(STAGES[0].id);
   const active = STAGES.find((s) => s.id === activeId) ?? STAGES[0];
+  const activeIndex = STAGES.findIndex((s) => s.id === activeId);
   const { Diagram } = active;
 
   // the first draw waits until the section is actually on screen
@@ -159,22 +164,23 @@ export function WorkflowSection() {
 
         {/* desktop spine */}
         <div className="relative mt-20 hidden h-[56px] md:block" role="group" aria-label="Pipeline stages">
-          <div className="absolute inset-x-0 top-1/2 h-px bg-edge" aria-hidden />
+          <div className="absolute left-[3%] right-[3%] top-1/2 h-px -translate-y-1/2 bg-edge" aria-hidden />
           <motion.div
-            className="absolute left-0 top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-beacon"
+            className="absolute left-[3%] top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-beacon"
             initial={false}
-            animate={{ width: `${active.pos}%` }}
+            animate={{ width: `${active.pos - 3}%` }}
             transition={
               reduced ? { duration: 0 } : { type: "spring", stiffness: 120, damping: 22 }
             }
             aria-hidden
           />
           <TerminalPill label="START" side="left" />
-          {STAGES.map((stage) => (
+          {STAGES.map((stage, i) => (
             <StageChip
               key={stage.id}
               stage={stage}
               active={stage.id === activeId}
+              passed={i < activeIndex}
               onSelect={() => setActiveId(stage.id)}
               className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
               style={{ left: `${stage.pos}%` }}
@@ -185,11 +191,12 @@ export function WorkflowSection() {
 
         {/* mobile: same chips, laid out as a grid */}
         <div className="mt-12 grid grid-cols-2 justify-items-center gap-2 md:hidden">
-          {STAGES.map((stage) => (
+          {STAGES.map((stage, i) => (
             <StageChip
               key={stage.id}
               stage={stage}
               active={stage.id === activeId}
+              passed={i < activeIndex}
               onSelect={() => setActiveId(stage.id)}
             />
           ))}

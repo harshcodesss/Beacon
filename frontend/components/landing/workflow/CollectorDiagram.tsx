@@ -16,7 +16,7 @@ import {
 export function CollectorDiagram({ animated, shown }: { animated: boolean; shown: boolean }) {
   return (
     <DiagramSvg
-      viewBox="0 0 860 490"
+      viewBox="0 -20 860 530"
       label="Collector workflow: read log windows and commits, cluster, flag new templates, assemble and cap the context pack"
       animated={animated}
       shown={shown}
